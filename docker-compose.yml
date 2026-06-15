@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: delivery_app
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./docker/www.conf:/usr/local/etc/php-fpm.d/www.conf
+    depends_on:
+      - db
+    networks:
+      - delivery_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: delivery_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - delivery_network
+
+  db:
+    image: mysql:8.0
+    container_name: delivery_db
+    environment:
+      MYSQL_DATABASE: delivery_system
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_PASSWORD: secret
+      MYSQL_USER: laravel
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - delivery_network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: delivery_phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: secret
+    networks:
+      - delivery_network
+
+networks:
+  delivery_network:
+    driver: bridge
+
+volumes:
+  db_data:

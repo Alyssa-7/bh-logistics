@@ -573,16 +573,27 @@ class DeliveryOrderController extends Controller
 
     public function driverOrders(Request $request)
     {
-        $vehicle = Vehicle::where('driver_id', $request->user()->id)->first();
-        if (!$vehicle) {
+        $vehicleId = Vehicle::where('driver_id', $request->user()->id)->value('id');
+        if (!$vehicleId) {
             return response()->json([]);
         }
 
-        $orders = DeliveryOrder::with(['branch', 'vehicle', 'items'])
-            ->where('vehicle_id', $vehicle->id)
-            ->where('status', '!=', 'cancelled')
+        $orders = DeliveryOrder::with([
+                'branch:id,name',
+                'vehicle:id,license_plate',
+                'items:id,delivery_order_id,item_id,product_name,qty_ordered,unit',
+            ])
+            ->where('vehicle_id', $vehicleId)
             ->where(function ($q) {
-                // BO ที่ Driver เห็นได้ = อนุมัติแล้วเท่านั้น
+                // Active orders always visible
+                $q->whereIn('status', ['pending', 'in_transit'])
+                  // Completed/delivered within last 7 days
+                  ->orWhere(function ($q2) {
+                      $q2->whereIn('status', ['delivered', 'completed', 'problem'])
+                         ->where('updated_at', '>=', now()->subDays(7));
+                  });
+            })
+            ->where(function ($q) {
                 $q->where('is_backorder', false)
                   ->orWhere(function ($q2) {
                       $q2->where('is_backorder', true)
