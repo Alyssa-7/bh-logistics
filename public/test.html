@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BH-Logistic API Tester</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+
+    .navbar {
+      background: #1e3a5f;
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .navbar h1 { font-size: 18px; }
+    .badge {
+      background: #f39c12;
+      color: white;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    #user-info {
+      margin-left: auto;
+      font-size: 13px;
+      opacity: 0.85;
+    }
+
+    .container { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .card h2 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: #1e3a5f;
+      border-bottom: 2px solid #e8f0fe;
+      padding-bottom: 8px;
+    }
+
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .form-row label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .form-row input, .form-row select, .form-row textarea {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 14px;
+      width: 100%;
+    }
+    .form-col { flex: 1; min-width: 150px; }
+
+    button {
+      background: #1e3a5f;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 9px 18px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #2a5298; }
+    button.danger { background: #c0392b; }
+    button.success { background: #27ae60; }
+    button.secondary { background: #7f8c8d; }
+
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 16px; }
+    .tab {
+      padding: 7px 14px;
+      border-radius: 6px;
+      background: #ecf0f1;
+      cursor: pointer;
+      font-size: 13px;
+      border: 2px solid transparent;
+    }
+    .tab.active { background: #e8f0fe; border-color: #1e3a5f; color: #1e3a5f; font-weight: 600; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .result {
+      background: #1a1a2e;
+      color: #a8ff78;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-height: 320px;
+      overflow-y: auto;
+      margin-top: 12px;
+    }
+    .result.error { color: #ff6b6b; }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .status-pending    { background: #ffeaa7; color: #d35400; }
+    .status-in_transit { background: #74b9ff; color: #2d3436; }
+    .status-delivered  { background: #a29bfe; color: #2d3436; }
+    .status-completed  { background: #55efc4; color: #00695c; }
+    .status-problem    { background: #fd9644; color: #fff; }
+    .status-cancelled  { background: #fd79a8; color: #6d214f; }
+
+    .sub-badge {
+      display: inline-block; padding: 1px 7px; border-radius: 10px;
+      font-size: 10px; font-weight: 600; margin-left: 4px;
+      background: #f39c12; color: #fff;
+    }
+    .sub-incomplete  { background: #e17055; }
+    .sub-rejected    { background: #d63031; }
+    .sub-bo_pending  { background: #fdcb6e; color: #333; }
+    .sub-bo_approved { background: #00b894; }
+    .sub-bo_rejected { background: #636e72; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f8f9fa; padding: 8px 10px; text-align: left; color: #555; border-bottom: 2px solid #eee; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+    tr:hover td { background: #fafbff; }
+
+    .login-box { max-width: 380px; margin: 60px auto; }
+    .login-box h2 { font-size: 22px; color: #1e3a5f; margin-bottom: 20px; text-align: center; }
+
+    #app { display: none; }
+    #login-screen { display: block; }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .alert-success { background: #d4edda; color: #155724; }
+    .alert-error { background: #f8d7da; color: #721c24; }
+
+    .role-tag {
+      background: #e8f0fe;
+      color: #1e3a5f;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .sig-box {
+      border: 2px dashed #b2bec3;
+      border-radius: 8px;
+      background: #fff;
+      cursor: crosshair;
+      display: block;
+      touch-action: none;
+    }
+    .sig-box.has-sig { border-color: #00b894; border-style: solid; }
+    .sig-toolbar { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+    .sig-toolbar span { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-box card" style="margin-top:80px;">
+    <h2>🚚 BH-Logistic</h2>
+    <div id="login-alert"></div>
+    <div class="form-row" style="display:block; margin-bottom:10px;">
+      <div class="form-col">
+        <label>Email</label>
+        <input type="email" id="email" value="admin@bh-logistic.com">
+      </div>
+    </div>
+    <div class="form-row" style="display:block; margin-bottom:14px;">
+      <div class="form-col">
+        <label>Password</label>
+        <input type="password" id="password" value="password">
+      </div>
+    </div>
+    <button onclick="login()" style="width:100%">เข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="navbar">
+    <h1>🚚 BH-Logistic API Tester</h1>
+    <span class="badge" id="role-badge">-</span>
+    <span id="user-info"></span>
+    <button class="secondary" onclick="logout()" style="padding:6px 12px; font-size:12px;">ออกจากระบบ</button>
+  </div>
+
+  <div class="container">
+
+    <!-- GPS Active Banner — แสดงทุก tab เมื่อ GPS กำลังทำงาน -->
+    <div id="pickup-gps-banner" style="display:none; background:linear-gradient(135deg,#00b894,#00cec9); color:white; border-radius:10px; padding:14px 18px; margin-bottom:12px; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div style="font-size:22px; line-height:1;">🛰️</div>
+      <div style="flex:1; min-width:180px;">
+        <div style="font-weight:700; font-size:14px; letter-spacing:0.3px;">GPS กำลังติดตามตำแหน่ง</div>
+        <div id="pickup-gps-info" style="font-size:12px; opacity:0.9; margin-top:2px;">กำลังรับสัญญาณ GPS...</div>
+        <div id="pickup-gps-dispatch-time" style="font-size:12px; opacity:0.85; margin-top:2px;"></div>
+        <div id="pickup-gps-elapsed" style="font-size:13px; font-weight:700; margin-top:2px; color:#a8ff78;"></div>
+      </div>
+      <button onclick="stopGpsTracking()"
+        style="background:#d63031; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">
+        ⏹ หยุด GPS
+      </button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('auth')">Auth</div>
+      <div class="tab" onclick="switchTab('orders')">Delivery Orders</div>
+      <div class="tab" onclick="switchTab('receive')">รับสินค้า (Branch)</div>
+      <div class="tab" onclick="switchTab('backorder')">Backorder (HQ)</div>
+      <div class="tab" onclick="switchTab('driver')">Driver</div>
+      <div class="tab" onclick="switchTab('pickup')">รับสินค้า (Driver)</div>
+      <div class="tab" onclick="switchTab('summary')">สรุปรายสาขา (Driver)</div>
+      <div class="tab" onclick="switchTab('gps')">GPS</div>
+      <div class="tab" onclick="switchTab('reports')">Reports</div>
+      <div class="tab" onclick="switchTab('users')">Users (Admin)</div>
+    </div>
+
+    <!-- Auth Section -->
+    <div class="section active" id="tab-auth">
+      <div class="card">
+        <h2>GET /api/auth/me — ข้อมูลผู้ใช้ปัจจุบัน</h2>
+        <button onclick="apiCall('GET', '/api/auth/me', null, 'auth-result')">ดูข้อมูลของฉัน</button>
+        <div class="result" id="auth-result">ผลลัพธ์จะแสดงที่นี่...</div>
+      </div>
+    </div>
+
+    <!-- Delivery Orders Section -->
+    <div class="section" id="tab-orders">
+      <div class="card">
+        <h2>GET /api/delivery-orders — รายการออเดอร์</h2>
+        <div class="form-row" style="margin-bottom:10px;">
+          <div class="form-col">
+            <label>กรองสถานะ</label>
+            <select id="order-filter-status" onchange="listOrders()">
+              <option value="">ทุกสถานะ</option>
+              <option value="pending">รอดำเนินการ (pending)</option>
+              <option value="in_delivery">กำลังส่ง (in_transit + delivered)</option>
+              <option value="problem">มีปัญหา (problem)</option>
+              <option value="completed">เสร็จสิ้น (completed)</option>
+              <option value="cancelled">ยกเลิก (cancelled)</option>
+            </select>
+          </div>
+          <div class="form-col" style="display:flex; align-items:flex-end;">
+            <button onclick="listOrders()">โหลดรายการ</button>
+          </div>
+        </div>
+        <div id="orders-table" style="margin-top:12px;"></div>
+        <div class="result" id="orders-result" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h2>POST /api/delivery-orders — สร้างออเดอร์ใหม่</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Branch ID</label>
+            <input type="number" id="new-branch-id" placeholder="1">
+          </div>
+          <div class="form-col">
+            <label>Vehicle ID (optional)</label>
+            <input type="number" id="new-vehicle-id" placeholder="1">
+          </div>
+          <div class="form-col">
+            <label>Scheduled Date</label>
+            <input type="date" id="new-scheduled-date">
+          </div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:12px; color:#666; display:block; margin-bottom:4px;">Items (JSON array)</label>
+          <textarea id="new-items" rows="4" style="width:100%; border:1px solid #ddd; border-radius:6px; padding:8px; font-size:13px; font-family:monospace;">[
+  {"product_name": "สินค้า A", "qty_ordered": 10, "unit": "กล่อง"},
+  {"product_name": "สินค้า B", "qty_ordered": 5, "unit": "ชิ้น"}
+]</textarea>
+        </div>
+        <button class="success" onclick="createOrder()">สร้างออเดอร์</button>
+        <div class="result" id="create-order-result" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h2>PUT /api/delivery-orders/{id} — อัปเดตสถานะ (HQ/Driver)</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Order ID</label>
+            <input type="number" id="update-order-id" placeholder="1">
+          </div>
+          <div class="form-col">
+            <label>Status</label>
+            <select id="update-order-status">
+              <option value="pending">pending — รอดำเนินการ</option>
+              <option value="in_transit">in_transit — กำลังส่ง</option>
+              <option value="delivered">delivered — Driver ส่งถึงแล้ว</option>
+              <option value="cancelled">cancelled — ยกเลิก</option>
+            </select>
+          </div>
+        </div>
+        <div id="cancel-reason-row" style="display:none; margin-bottom:10px;">
+          <label style="font-size:12px; color:#666; display:block; margin-bottom:4px;">
+            หมายเหตุการยกเลิก <span style="color:#888; font-size:11px;">(ไม่บังคับ)</span>
+          </label>
+          <input type="text" id="cancel-reason-input" placeholder="เช่น สาขาปิดปรับปรุง / ลูกค้าขอยกเลิก"
+            style="width:100%; border:1px solid #ddd; border-radius:6px; padding:8px; font-size:13px;">
+        </div>
+        <button onclick="updateOrder()">อัปเดต</button>
+        <div class="result" id="update-order-result" style="display:none; margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- Receive Section -->
+    <div class="section" id="tab-receive">
+      <div class="card">
+        <h2>GET /api/scan/{qr_code} — สแกน QR Code</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>QR Code</label>
+            <input type="text" id="qr-code" placeholder="วาง QR code ที่นี่">
+          </div>
+          <div class="form-col" style="display:flex; align-items:flex-end;">
+            <button onclick="scanQR()">สแกน</button>
+          </div>
+        </div>
+        <div class="result" id="scan-result" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h2>GET /api/branch/delivery-orders — รายการรอรับ (Branch)</h2>
+        <button onclick="loadBranchOrders()">โหลดรายการ (in_transit + delivered)</button>
+        <div id="branch-orders-table" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>POST /api/delivery-orders/{id}/receive-items — ยืนยัน / ปฏิเสธรับสินค้า</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Delivery Order ID</label>
+            <input type="number" id="receive-order-id" placeholder="1">
+          </div>
+        </div>
+
+        <!-- Signature Pad (ใช้ร่วมกันทั้ง confirm และ reject) -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px; color:#666; display:block; margin-bottom:6px;">
+            ลายเซ็นผู้รับ <span style="color:#888; font-size:11px;">(ไม่บังคับ — ลากเมาส์หรือนิ้วบน canvas)</span>
+          </label>
+          <canvas id="sig-canvas" class="sig-box" width="560" height="140"></canvas>
+          <div class="sig-toolbar">
+            <button class="secondary" onclick="clearSignature()" style="padding:5px 12px; font-size:12px;">ลบลายเซ็น</button>
+            <span id="sig-status">ยังไม่มีลายเซ็น</span>
+          </div>
+        </div>
+
+        <!-- Items -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px; color:#666; display:block; margin-bottom:4px;">
+            Items รับจริง (JSON) — ระบบคำนวณ "ขาด X ชิ้น" อัตโนมัติ
+          </label>
+          <textarea id="receive-items" rows="4" style="width:100%; border:1px solid #ddd; border-radius:6px; padding:8px; font-size:13px; font-family:monospace;">[{"id": 1, "qty_received": 10, "item_note": ""}]</textarea>
+        </div>
+
+        <!-- ช่องเหตุผล (ซ่อนไว้ก่อน โผล่เมื่อกด ปฏิเสธรับ) -->
+        <div id="reject-reason-box" style="display:none; background:#fff5f5; border:1px solid #ff7675; border-radius:8px; padding:12px; margin-bottom:12px;">
+          <label style="font-size:12px; font-weight:600; color:#c0392b; display:block; margin-bottom:6px;">
+            เหตุผลการปฏิเสธ <span style="color:red;">*บังคับ</span>
+          </label>
+          <input type="text" id="reject-reason" placeholder="เช่น สินค้าเสียหาย / ส่งผิดสาขา / ไม่ตรงใบ"
+            style="width:100%; border:1px solid #fab1a0; border-radius:6px; padding:8px; font-size:13px;">
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="danger" onclick="submitReject()" style="flex:1;">ยืนยันปฏิเสธรับสินค้า</button>
+            <button class="secondary" onclick="cancelReject()" style="flex:0 0 auto;">ยกเลิก</button>
+          </div>
+        </div>
+
+        <!-- ปุ่มคู่ -->
+        <div id="receive-action-buttons" style="display:flex; gap:10px;">
+          <button class="success" onclick="receiveOrder('confirm')" style="flex:1; padding:11px;">
+            ✅ ยืนยันรับสินค้า
+          </button>
+          <button class="danger" onclick="showRejectBox()" style="flex:1; padding:11px;">
+            ❌ ปฏิเสธรับ
+          </button>
+        </div>
+
+        <div class="result" id="receive-result" style="display:none; margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Backorder Section (HQ) -->
+    <div class="section" id="tab-backorder">
+      <div class="card">
+        <h2>รายการ Backorder รอการอนุมัติ (sub_status = bo_pending)</h2>
+        <button onclick="loadPendingBackorders()">โหลด Backorder ที่รอการอนุมัติ</button>
+        <div id="bo-pending-table" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>POST /api/delivery-orders/{id}/approve-backorder — อนุมัติ BO</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:12px;">
+          ต้องเลือก Driver ที่มียานพาหนะผูกไว้ — DO จะถูกมอบหมายให้ Driver ทันที
+        </p>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Backorder DO ID</label>
+            <input type="number" id="bo-approve-id" placeholder="DO id">
+          </div>
+          <div class="form-col">
+            <label>Driver ID</label>
+            <input type="number" id="bo-driver-id" placeholder="user id ของ driver">
+          </div>
+          <div class="form-col" style="display:flex; align-items:flex-end;">
+            <button class="success" onclick="approveBO()">อนุมัติ BO</button>
+          </div>
+        </div>
+        <div class="result" id="bo-approve-result" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h2>POST /api/delivery-orders/{id}/reject-backorder — ปฏิเสธ BO</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Backorder DO ID</label>
+            <input type="number" id="bo-reject-id" placeholder="DO id">
+          </div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:12px; color:#666; display:block; margin-bottom:4px;">
+            เหตุผลการปฏิเสธ <span style="color:red;">*บังคับ</span>
+          </label>
+          <input type="text" id="bo-reject-reason" placeholder="ระบุเหตุผล"
+            style="width:100%; border:1px solid #ddd; border-radius:6px; padding:8px; font-size:13px;">
+        </div>
+        <button class="danger" onclick="rejectBO()">ปฏิเสธ BO</button>
+        <div class="result" id="bo-reject-result" style="display:none; margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Driver Section -->
+    <div class="section" id="tab-driver">
+      <div class="card">
+        <h2>GET /api/driver/orders — รายการ DO ของฉัน (Driver)</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:10px;">
+          แสดงเฉพาะ DO ที่ผูกกับยานพาหนะของฉัน (ไม่รวม cancelled, BO ที่ยังไม่ approved)
+        </p>
+        <button onclick="loadDriverOrders()">โหลด DO ของฉัน</button>
+        <div id="driver-orders-table" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>GET /api/notifications — การแจ้งเตือนของฉัน</h2>
+        <button onclick="loadMyNotifications()">โหลดการแจ้งเตือน</button>
+        <div id="notifications-list" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- Pickup Section (Driver รับสินค้าเพื่อเริ่มส่ง) -->
+    <div class="section" id="tab-pickup">
+
+      <!-- Driver Summary Cards (today) -->
+      <div id="driver-summary-cards" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:90px;background:linear-gradient(135deg,#74b9ff,#0984e3);border-radius:14px;padding:16px 12px;color:white;text-align:center;box-shadow:0 3px 10px rgba(9,132,227,0.3);">
+          <div style="font-size:28px;font-weight:800;" id="summary-pending">—</div>
+          <div style="font-size:12px;font-weight:600;margin-top:4px;opacity:0.9;">รับของ</div>
+        </div>
+        <div style="flex:1;min-width:90px;background:linear-gradient(135deg,#55efc4,#00b894);border-radius:14px;padding:16px 12px;color:white;text-align:center;box-shadow:0 3px 10px rgba(0,184,148,0.3);">
+          <div style="font-size:28px;font-weight:800;" id="summary-transit">—</div>
+          <div style="font-size:12px;font-weight:600;margin-top:4px;opacity:0.9;">กำลังส่ง</div>
+        </div>
+        <div style="flex:1;min-width:90px;background:linear-gradient(135deg,#a29bfe,#6c5ce7);border-radius:14px;padding:16px 12px;color:white;text-align:center;box-shadow:0 3px 10px rgba(108,92,231,0.3);">
+          <div style="font-size:28px;font-weight:800;" id="summary-delivered">—</div>
+          <div style="font-size:12px;font-weight:600;margin-top:4px;opacity:0.9;">ส่งแล้ว</div>
+        </div>
+      </div>
+
+      <!-- Pending Orders -->
+      <div class="card">
+        <h2>📦 รายการสินค้ารอรับเพื่อส่ง</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:12px;">
+          ออเดอร์ที่ได้รับมอบหมาย สถานะ
+          <span class="status-badge status-pending" style="font-size:11px;">รอดำเนินการ</span>
+          — กดปุ่มเขียวเพื่อยืนยันรับและเปิด GPS อัตโนมัติ
+        </p>
+        <button onclick="loadPickupOrders()" style="margin-bottom:14px;">🔄 โหลดรายการ</button>
+        <div id="pickup-orders-list">
+          <p style="color:#aaa; font-size:13px; text-align:center; padding:20px 0;">กด "โหลดรายการ" เพื่อดูออเดอร์</p>
+        </div>
+      </div>
+
+      <!-- In-Transit Orders -->
+      <div class="card">
+        <h2>🚛 ออเดอร์ที่กำลังส่งอยู่</h2>
+        <div id="pickup-intransit-list">
+          <p style="color:#aaa; font-size:13px; text-align:center; padding:16px 0;">กด "โหลดรายการ" ด้านบนเพื่ออัปเดต</p>
+        </div>
+      </div>
+
+      <!-- GPS Log -->
+      <div class="card" id="pickup-gps-log-card" style="display:none;">
+        <h2>📡 ประวัติการส่ง GPS (session นี้)</h2>
+        <div id="pickup-gps-log" style="font-size:12px; color:#636e72; max-height:180px; overflow-y:auto;"></div>
+      </div>
+
+    </div>
+
+    <!-- Summary Section (Driver สรุปออเดอร์แยกตามสาขา) -->
+    <div class="section" id="tab-summary">
+
+      <div class="card">
+        <h2>📋 สรุปออเดอร์แยกตามสาขา</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:12px;">
+          แสดงรายการสินค้าที่คนขับต้องส่งให้แต่ละสาขา — คนขับและสาขาสามารถตรวจสอบว่าส่งอะไร กี่ชิ้น ก่อนและหลังรับสินค้า
+        </p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+          <button onclick="loadDriverSummary()">🔄 โหลดสรุป</button>
+          <select id="summary-status-filter" onchange="loadDriverSummary()"
+            style="border:1px solid #ddd; border-radius:6px; padding:7px 10px; font-size:13px;">
+            <option value="">ทุกสถานะ (ยกเว้น cancelled)</option>
+            <option value="pending">รอดำเนินการ (pending)</option>
+            <option value="in_transit">กำลังส่ง (in_transit)</option>
+            <option value="delivered">ส่งถึงแล้ว (delivered)</option>
+            <option value="completed">เสร็จสิ้น (completed)</option>
+          </select>
+        </div>
+        <div id="driver-summary-content">
+          <p style="color:#aaa; font-size:13px; text-align:center; padding:24px 0;">กด "โหลดสรุป" เพื่อดูรายการ</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- GPS Section -->
+    <div class="section" id="tab-gps">
+      <div class="card">
+        <h2>POST /api/gps/update — ส่ง GPS Location</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>รหัสยานพาหนะ</label>
+            <input type="number" id="gps-vehicle-id" placeholder="1">
+          </div>
+          <div class="form-col">
+            <label>Delivery Order ID (optional)</label>
+            <input type="number" id="gps-order-id" placeholder="1">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-col">
+            <label>ละติจูด</label>
+            <input type="number" id="gps-lat" placeholder="13.7563" step="0.0001">
+          </div>
+          <div class="form-col">
+            <label>ลองจิจูด</label>
+            <input type="number" id="gps-lng" placeholder="100.5018" step="0.0001">
+          </div>
+          <div class="form-col" style="display:flex; align-items:flex-end;">
+            <button onclick="getMyLocation()">📍 ใช้ Location ปัจจุบัน</button>
+          </div>
+        </div>
+        <button class="success" onclick="sendGps()" style="margin-top:6px;">ส่ง GPS</button>
+        <div class="result" id="gps-result" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h2>GET /api/gps/{vehicle_id} — ประวัติ GPS</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>รหัสยานพาหนะ</label>
+            <input type="number" id="gps-history-vehicle-id" placeholder="1">
+          </div>
+          <div class="form-col" style="display:flex; align-items:flex-end;">
+            <button onclick="getGpsHistory()">ดูประวัติ</button>
+          </div>
+        </div>
+        <div class="result" id="gps-history-result" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Reports Section -->
+    <div class="section" id="tab-reports">
+      <div class="card">
+        <h2>GET /api/reports/monthly — รายงานรายเดือน</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Year</label>
+            <input type="number" id="report-year" value="2026">
+          </div>
+          <div class="form-col">
+            <label>Month</label>
+            <input type="number" id="report-month" value="6" min="1" max="12">
+          </div>
+          <div class="form-col" style="display:flex; align-items:flex-end;">
+            <button onclick="getMonthlyReport()">ดูรายงาน</button>
+          </div>
+        </div>
+        <div class="result" id="monthly-result" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h2>GET /api/reports/delivery-summary — สรุปการส่ง</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>From Date</label>
+            <input type="date" id="report-from">
+          </div>
+          <div class="form-col">
+            <label>To Date</label>
+            <input type="date" id="report-to">
+          </div>
+          <div class="form-col" style="display:flex; align-items:flex-end;">
+            <button onclick="getDeliverySummary()">ดูสรุป</button>
+          </div>
+        </div>
+        <div class="result" id="summary-result" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Users Section -->
+    <div class="section" id="tab-users">
+      <div class="card">
+        <h2>GET /api/users — รายชื่อ Users ทั้งหมด</h2>
+        <button onclick="listUsers()">โหลดรายชื่อ</button>
+        <div id="users-table" style="margin-top:12px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>POST /api/users — สร้าง User ใหม่</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Name</label>
+            <input type="text" id="new-user-name" placeholder="ชื่อ-นามสกุล">
+          </div>
+          <div class="form-col">
+            <label>Email</label>
+            <input type="email" id="new-user-email" placeholder="email@example.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Password</label>
+            <input type="password" id="new-user-password" placeholder="min 8 ตัวอักษร">
+          </div>
+          <div class="form-col">
+            <label>Role</label>
+            <select id="new-user-role">
+              <option value="admin">Admin</option>
+              <option value="hq">HQ</option>
+              <option value="driver">Driver</option>
+              <option value="branch">Branch</option>
+            </select>
+          </div>
+          <div class="form-col">
+            <label>Branch ID (optional)</label>
+            <input type="number" id="new-user-branch-id" placeholder="1">
+          </div>
+        </div>
+        <button class="success" onclick="createUser()">สร้าง User</button>
+        <div class="result" id="create-user-result" style="display:none;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const BASE = '';
+  let token = localStorage.getItem('bh_token') || '';
+  let currentUser = null;
+
+  async function apiCall(method, path, body, resultId) {
+    const el = resultId ? document.getElementById(resultId) : null;
+    if (el) { el.style.display = 'block'; el.textContent = 'กำลังโหลด...'; el.className = 'result'; }
+    try {
+      const res = await fetch(BASE + path, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      const data = await res.json();
+      if (el) {
+        el.className = res.ok ? 'result' : 'result error';
+        el.textContent = JSON.stringify(data, null, 2);
+      }
+      return { ok: res.ok, data };
+    } catch (e) {
+      if (el) { el.className = 'result error'; el.textContent = 'Error: ' + e.message; }
+      return { ok: false, data: null };
+    }
+  }
+
+  async function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const alertEl = document.getElementById('login-alert');
+
+    const res = await apiCall('POST', '/api/auth/login', { email, password }, null);
+    if (res.ok && res.data.token) {
+      token = res.data.token;
+      localStorage.setItem('bh_token', token);
+      const user = res.data.user;
+      currentUser = user;
+      document.getElementById('user-info').textContent = user.name + ' <' + user.email + '>';
+      document.getElementById('role-badge').textContent = user.role.toUpperCase();
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    } else {
+      alertEl.className = 'alert alert-error';
+      alertEl.textContent = res.data?.message || 'Login ไม่สำเร็จ';
+    }
+  }
+
+  async function logout() {
+    await apiCall('POST', '/api/auth/logout', null, null);
+    token = '';
+    localStorage.removeItem('bh_token');
+    document.getElementById('login-screen').style.display = 'block';
+    document.getElementById('app').style.display = 'none';
+  }
+
+  function switchTab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    const target = el || (typeof event !== 'undefined' && event?.target);
+    if (target) target.classList.add('active');
+  }
+
+  function statusBadge(status, subStatus) {
+    let badge = `<span class="status-badge status-${status}">${statusLabel(status)}</span>`;
+    if (subStatus) {
+      badge += `<span class="sub-badge sub-${subStatus}">${subStatusLabel(subStatus)}</span>`;
+    }
+    return badge;
+  }
+
+  function statusLabel(s) {
+    return { pending:'รอดำเนินการ', in_transit:'กำลังส่ง', delivered:'ส่งถึงแล้ว',
+             completed:'เสร็จสิ้น', problem:'มีปัญหา', cancelled:'ยกเลิก' }[s] || s;
+  }
+
+  function subStatusLabel(s) {
+    return { incomplete:'รับไม่ครบ', rejected:'ปฏิเสธรับ',
+             bo_pending:'รอ HQ', bo_approved:'อนุมัติ BO', bo_rejected:'ปฏิเสธ BO' }[s] || s;
+  }
+
+  async function listOrders() {
+    const status = document.getElementById('order-filter-status').value;
+    const url = '/api/delivery-orders' + (status ? '?status=' + status : '');
+    const res = await apiCall('GET', url, null, 'orders-result');
+    if (res.ok && res.data.data) {
+      const orders = res.data.data;
+      document.getElementById('orders-result').style.display = 'none';
+      document.getElementById('orders-table').innerHTML = orders.length === 0
+        ? '<p style="color:#999; font-size:13px;">ยังไม่มีออเดอร์</p>'
+        : `<table>
+          <thead><tr><th>เลขที่ใบสั่ง</th><th>Branch</th><th>สถานะ</th><th>BO</th><th>Scheduled</th><th>รับสินค้า</th><th>หมายเหตุยกเลิก</th></tr></thead>
+          <tbody>${orders.map(o => `<tr>
+            <td><b>${o.do_number}</b>${o.is_backorder ? ' <span style="font-size:10px;background:#dfe6e9;padding:1px 5px;border-radius:8px;">BO#${o.bo_round}</span>' : ''}</td>
+            <td>${o.branch?.name || '-'}</td>
+            <td>${statusBadge(o.status, o.sub_status)}</td>
+            <td style="font-size:11px; color:#888;">${o.bo_round > 0 ? 'รอบ ' + o.bo_round : '-'}</td>
+            <td>${o.scheduled_date}</td>
+            <td style="font-size:11px; color:#888;">${o.received_at ? o.received_at : '-'}</td>
+            <td style="font-size:11px; color:#c0392b;">${o.cancel_reason ? '🚫 ' + o.cancel_reason : ''}</td>
+          </tr>`).join('')}</tbody>
+        </table>`;
+    }
+  }
+
+  async function createOrder() {
+    const body = {
+      branch_id: parseInt(document.getElementById('new-branch-id').value),
+      vehicle_id: document.getElementById('new-vehicle-id').value ? parseInt(document.getElementById('new-vehicle-id').value) : null,
+      scheduled_date: document.getElementById('new-scheduled-date').value,
+      items: JSON.parse(document.getElementById('new-items').value),
+    };
+    const res = await apiCall('POST', '/api/delivery-orders', body, 'create-order-result');
+    document.getElementById('create-order-result').style.display = 'block';
+    if (res.ok) listOrders();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('update-order-status')?.addEventListener('change', function () {
+      document.getElementById('cancel-reason-row').style.display =
+        this.value === 'cancelled' ? 'block' : 'none';
+    });
+  });
+
+  async function updateOrder() {
+    const id     = document.getElementById('update-order-id').value;
+    const status = document.getElementById('update-order-status').value;
+
+    if (status === 'cancelled') {
+      const reason = document.getElementById('cancel-reason-input').value.trim() || null;
+      const res = await apiCall('PATCH', '/api/delivery-orders/' + id + '/cancel',
+        { cancel_reason: reason }, 'update-order-result');
+      document.getElementById('update-order-result').style.display = 'block';
+      if (res.ok) listOrders();
+    } else {
+      const res = await apiCall('PUT', '/api/delivery-orders/' + id, { status }, 'update-order-result');
+      document.getElementById('update-order-result').style.display = 'block';
+      if (res.ok) listOrders();
+    }
+  }
+
+  async function scanQR() {
+    const qr = document.getElementById('qr-code').value.trim();
+    document.getElementById('scan-result').style.display = 'block';
+    await apiCall('GET', '/api/scan/' + encodeURIComponent(qr), null, 'scan-result');
+  }
+
+  // ── Signature Pad ────────────────────────────────────────────
+  let sigDrawing = false;
+  let sigHasData = false;
+
+  function initSignaturePad() {
+    const canvas = document.getElementById('sig-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const pos = (e) => {
+      const r = canvas.getBoundingClientRect();
+      const src = e.touches ? e.touches[0] : e;
+      return { x: src.clientX - r.left, y: src.clientY - r.top };
+    };
+
+    const start = (e) => {
+      e.preventDefault();
+      sigDrawing = true;
+      const p = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    };
+    const draw = (e) => {
+      if (!sigDrawing) return;
+      e.preventDefault();
+      const p = pos(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      if (!sigHasData) {
+        sigHasData = true;
+        canvas.classList.add('has-sig');
+        document.getElementById('sig-status').textContent = 'มีลายเซ็น ✓';
+        document.getElementById('sig-status').style.color = '#00b894';
+      }
+    };
+    const end = () => { sigDrawing = false; };
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('mouseleave', end);
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', end);
+  }
+
+  function clearSignature() {
+    const canvas = document.getElementById('sig-canvas');
+    if (!canvas) return;
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    canvas.classList.remove('has-sig');
+    sigHasData = false;
+    const status = document.getElementById('sig-status');
+    status.textContent = 'ยังไม่มีลายเซ็น';
+    status.style.color = '#888';
+  }
+
+  function getSignatureDataUrl() {
+    if (!sigHasData) return null;
+    return document.getElementById('sig-canvas').toDataURL('image/png');
+  }
+
+  async function loadBranchOrders() {
+    const res = await apiCall('GET', '/api/branch/delivery-orders', null, null);
+    if (!res.ok) return;
+    const orders = res.data;
+    document.getElementById('branch-orders-table').innerHTML = orders.length === 0
+      ? '<p style="color:#999; font-size:13px;">ไม่มีรายการรอรับสินค้า</p>'
+      : `<table>
+        <thead><tr><th>DO</th><th>Branch</th><th>Status</th><th>Scheduled</th><th>สินค้า</th></tr></thead>
+        <tbody>${orders.map(o => `<tr>
+          <td><b>${o.do_number}</b></td>
+          <td>${o.branch?.name || '-'}</td>
+          <td>${statusBadge(o.status, o.sub_status)}</td>
+          <td>${o.scheduled_date}</td>
+          <td style="font-size:11px;">${(o.items||[]).map(i => i.product_name + ' ×' + i.qty_ordered).join(', ')}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  }
+
+  function showRejectBox() {
+    document.getElementById('reject-reason-box').style.display = 'block';
+    document.getElementById('receive-action-buttons').style.display = 'none';
+    document.getElementById('reject-reason').focus();
+  }
+
+  function cancelReject() {
+    document.getElementById('reject-reason-box').style.display = 'none';
+    document.getElementById('receive-action-buttons').style.display = 'flex';
+    document.getElementById('reject-reason').value = '';
+  }
+
+  async function submitReject() {
+    const reason = document.getElementById('reject-reason').value.trim();
+    if (!reason) {
+      document.getElementById('reject-reason').focus();
+      document.getElementById('reject-reason').style.borderColor = '#e74c3c';
+      return;
+    }
+    document.getElementById('reject-reason').style.borderColor = '';
+    await receiveOrder('reject');
+    cancelReject();
+  }
+
+  async function receiveOrder(action) {
+    const id = document.getElementById('receive-order-id').value;
+    if (!id) return alert('กรุณากรอก Delivery Order ID');
+
+    const signature = getSignatureDataUrl();
+    let body = { action, signature };
+
+    if (action === 'confirm') {
+      let items;
+      try { items = JSON.parse(document.getElementById('receive-items').value); }
+      catch { return alert('JSON ไม่ถูกต้อง'); }
+      body.items = items;
+
+      const shortages = items.filter(i => i.qty_ordered && i.qty_received < i.qty_ordered);
+      if (shortages.length > 0) {
+        const total = shortages.reduce((s, i) => s + (i.qty_ordered - i.qty_received), 0);
+        if (!confirm(`ตรวจพบสินค้าขาด ${total} หน่วย — ระบบจะสร้าง Backorder อัตโนมัติและแจ้ง HQ\n\nยืนยันดำเนินการต่อ?`)) return;
+      }
+    } else {
+      const reason = document.getElementById('reject-reason').value.trim();
+      if (!reason) return alert('กรุณากรอกเหตุผลการปฏิเสธ');
+      body.rejection_reason = reason;
+    }
+
+    document.getElementById('receive-result').style.display = 'block';
+    const res = await apiCall('POST', '/api/delivery-orders/' + id + '/receive-items', body, 'receive-result');
+    if (res.ok) clearSignature();
+  }
+
+  async function loadPendingBackorders() {
+    const res = await apiCall('GET', '/api/delivery-orders?status=pending', null, null);
+    if (!res.ok) return;
+    const all = (res.data.data || []).filter(o => o.is_backorder && o.sub_status === 'bo_pending');
+    document.getElementById('bo-pending-table').innerHTML = all.length === 0
+      ? '<p style="color:#999; font-size:13px;">ไม่มี Backorder รอการอนุมัติ</p>'
+      : `<table>
+        <thead><tr><th>DO (BO)</th><th>Branch</th><th>รอบที่</th><th>Sub Status</th><th>Scheduled</th><th>สินค้าขาด</th></tr></thead>
+        <tbody>${all.map(o => `<tr>
+          <td><b>${o.do_number}</b> <span style="font-size:10px;color:#888;">(id:${o.id})</span></td>
+          <td>${o.branch?.name || '-'}</td>
+          <td style="text-align:center;">${o.bo_round}</td>
+          <td>${statusBadge(o.status, o.sub_status)}</td>
+          <td>${o.scheduled_date}</td>
+          <td style="font-size:11px;">${(o.items||[]).map(i => i.product_name + ' ×' + i.qty_ordered).join(', ')}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  }
+
+  async function approveBO() {
+    const id = document.getElementById('bo-approve-id').value;
+    const driverId = document.getElementById('bo-driver-id').value;
+    if (!id || !driverId) return alert('กรุณากรอก BO ID และ Driver ID');
+    document.getElementById('bo-approve-result').style.display = 'block';
+    const res = await apiCall('POST', '/api/delivery-orders/' + id + '/approve-backorder',
+      { driver_id: parseInt(driverId) }, 'bo-approve-result');
+    if (res.ok) loadPendingBackorders();
+  }
+
+  async function rejectBO() {
+    const id = document.getElementById('bo-reject-id').value;
+    const reason = document.getElementById('bo-reject-reason').value.trim();
+    if (!id) return alert('กรุณากรอก BO ID');
+    if (!reason) return alert('กรุณากรอกเหตุผลการปฏิเสธ');
+    document.getElementById('bo-reject-result').style.display = 'block';
+    const res = await apiCall('POST', '/api/delivery-orders/' + id + '/reject-backorder',
+      { rejection_reason: reason }, 'bo-reject-result');
+    if (res.ok) loadPendingBackorders();
+  }
+
+  async function loadDriverOrders() {
+    const res = await apiCall('GET', '/api/driver/orders', null, null);
+    if (!res.ok) return;
+    const orders = res.data;
+    document.getElementById('driver-orders-table').innerHTML = orders.length === 0
+      ? '<p style="color:#999; font-size:13px;">ยังไม่มีออเดอร์</p>'
+      : `<table>
+        <thead><tr><th>DO</th><th>Branch</th><th>สถานะ</th><th>BO รอบ</th><th>กำหนดส่ง</th><th>เวลารับสินค้า</th><th>ระยะเวลาส่ง</th><th>Action</th></tr></thead>
+        <tbody>${orders.map(o => `<tr>
+          <td><b>${o.do_number}</b>${o.is_backorder ? ' <span style="font-size:10px;background:#dfe6e9;padding:1px 5px;border-radius:8px;">BO</span>' : ''}</td>
+          <td>${o.branch?.name || '-'}</td>
+          <td>${statusBadge(o.status, o.sub_status)}</td>
+          <td style="text-align:center;">${o.bo_round || '-'}</td>
+          <td>${o.scheduled_date}</td>
+          <td style="font-size:12px; color:#2d3436; white-space:nowrap;">
+            ${o.dispatched_at ? '🕐 ' + formatThaiDateTime(o.dispatched_at) : '-'}
+          </td>
+          <td style="font-size:12px; font-weight:700; white-space:nowrap; ${o.status === 'in_transit' ? 'color:#0984e3;' : 'color:#00b894;'}">
+            ${o.dispatched_at ? '⏱ ' + elapsedText(o.dispatched_at, o.received_at || o.arrived_at) : '-'}
+          </td>
+          <td>${o.status === 'pending'
+            ? `<button onclick="startDelivery(${o.id})" style="background:linear-gradient(135deg,#00b894,#0984e3);color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">📦 รับสินค้า</button>`
+            : '<span style="color:#b2bec3;font-size:12px;">-</span>'
+          }</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  }
+
+  async function loadMyNotifications() {
+    const res = await apiCall('GET', '/api/notifications', null, null);
+    if (!res.ok) return;
+    const noti = res.data;
+    const typeIcon = t => ({ rejection_alert:'🚫', shortage:'⚠️', bo_assigned:'📦', bo_approved:'✅', do_assigned:'🚛' }[t] || '🔔');
+    const isDriverRole = currentUser && currentUser.role === 'driver';
+    document.getElementById('notifications-list').innerHTML = noti.length === 0
+      ? '<p style="color:#999; font-size:13px;">ไม่มีการแจ้งเตือน</p>'
+      : `<div style="display:flex; flex-direction:column; gap:8px;">
+        ${noti.map(n => {
+          const showPickupBtn = isDriverRole && n.type === 'do_assigned' && n.do_id;
+          return `<div style="background:${n.is_read?'#f8f9fa':'#e8f0fe'}; border-radius:8px; padding:10px 14px; font-size:13px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span>${typeIcon(n.type)}</span>
+            <span style="font-weight:${n.is_read?'normal':'600'}; flex:1;">${n.message}</span>
+            <span style="font-size:11px; color:#888;">${n.created_at}</span>
+            ${showPickupBtn ? `<button onclick="startDelivery(${n.do_id})" style="background:linear-gradient(135deg,#00b894,#0984e3);color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">📦 รับสินค้า</button>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  function getMyLocation() {
+    if (!navigator.geolocation) return alert('Browser ไม่รองรับ Geolocation');
+    navigator.geolocation.getCurrentPosition(pos => {
+      document.getElementById('gps-lat').value = pos.coords.latitude.toFixed(6);
+      document.getElementById('gps-lng').value = pos.coords.longitude.toFixed(6);
+    });
+  }
+
+  async function sendGps() {
+    const body = {
+      vehicle_id: parseInt(document.getElementById('gps-vehicle-id').value),
+      delivery_order_id: document.getElementById('gps-order-id').value ? parseInt(document.getElementById('gps-order-id').value) : null,
+      lat: parseFloat(document.getElementById('gps-lat').value),
+      lng: parseFloat(document.getElementById('gps-lng').value),
+    };
+    document.getElementById('gps-result').style.display = 'block';
+    await apiCall('POST', '/api/gps/update', body, 'gps-result');
+  }
+
+  async function getGpsHistory() {
+    const id = document.getElementById('gps-history-vehicle-id').value;
+    document.getElementById('gps-history-result').style.display = 'block';
+    await apiCall('GET', '/api/gps/' + id, null, 'gps-history-result');
+  }
+
+  async function getMonthlyReport() {
+    const year = document.getElementById('report-year').value;
+    const month = document.getElementById('report-month').value;
+    document.getElementById('monthly-result').style.display = 'block';
+    await apiCall('GET', `/api/reports/monthly?year=${year}&month=${month}`, null, 'monthly-result');
+  }
+
+  async function getDeliverySummary() {
+    const from = document.getElementById('report-from').value;
+    const to = document.getElementById('report-to').value;
+    const params = new URLSearchParams();
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    document.getElementById('summary-result').style.display = 'block';
+    await apiCall('GET', '/api/reports/delivery-summary?' + params.toString(), null, 'summary-result');
+  }
+
+  async function listUsers() {
+    const res = await apiCall('GET', '/api/users', null, null);
+    if (!res.ok) return;
+    const users = res.data;
+    const roleColor = r => ({ admin:'#c0392b', hq:'#2980b9', driver:'#27ae60', branch:'#8e44ad' }[r] || '#666');
+    document.getElementById('users-table').innerHTML = `<table>
+      <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Branch</th><th>Active</th></tr></thead>
+      <tbody>${users.map(u => `<tr>
+        <td>${u.id}</td>
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td><span class="role-tag" style="background:${roleColor(u.role)}20; color:${roleColor(u.role)}">${u.role}</span></td>
+        <td>${u.branch?.name || '-'}</td>
+        <td>${u.is_active ? '✅' : '❌'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  }
+
+  async function createUser() {
+    const body = {
+      name: document.getElementById('new-user-name').value,
+      email: document.getElementById('new-user-email').value,
+      password: document.getElementById('new-user-password').value,
+      role: document.getElementById('new-user-role').value,
+      branch_id: document.getElementById('new-user-branch-id').value || null,
+    };
+    const res = await apiCall('POST', '/api/users', body, 'create-user-result');
+    document.getElementById('create-user-result').style.display = 'block';
+    if (res.ok) listUsers();
+  }
+
+  // Auto login if token exists
+  window.onload = () => {
+    initSignaturePad();
+    if (token) {
+      apiCall('GET', '/api/auth/me', null, null).then(res => {
+        if (res.ok) {
+          const u = res.data;
+          currentUser = u;
+          document.getElementById('user-info').textContent = u.name + ' <' + u.email + '>';
+          document.getElementById('role-badge').textContent = u.role.toUpperCase();
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('app').style.display = 'block';
+        } else {
+          token = '';
+          localStorage.removeItem('bh_token');
+        }
+      });
+    }
+  };
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') login();
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // Pickup Tab — Driver รับสินค้าเพื่อเริ่มส่ง + Auto GPS
+  // ══════════════════════════════════════════════════════════════
+
+  let gpsWatchId = null;
+  let gpsActiveOrderId = null;
+  let gpsDriverVehicleId = null;
+  let gpsLastSentAt = 0;
+  const GPS_SEND_INTERVAL_MS = 30000; // ส่งพิกัดทุก 30 วินาที
+  let gpsDispatchedAt = null;
+  let gpsElapsedTimer = null;
+
+  async function loadDriverVehicle() {
+    if (!currentUser) return null;
+    const res = await apiCall('GET', '/api/vehicles', null, null);
+    if (res.ok && Array.isArray(res.data)) {
+      const mine = res.data.find(v => v.driver_id === currentUser.id);
+      if (mine) { gpsDriverVehicleId = mine.id; return mine; }
+    }
+    return null;
+  }
+
+  async function loadPickupOrders() {
+    // Pre-load vehicle so GPS starts without delay when driver taps accept
+    if (!gpsDriverVehicleId) loadDriverVehicle();
+
+    const res = await apiCall('GET', '/api/driver/orders', null, null);
+    if (!res.ok) return;
+
+    const orders = res.data || [];
+    const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    // Summary cards — นับเฉพาะออเดอร์วันนี้ (ใช้ scheduled_date)
+    const todayOrders = orders.filter(o => (o.scheduled_date || '').slice(0, 10) === todayStr);
+    document.getElementById('summary-pending').textContent   = todayOrders.filter(o => o.status === 'pending').length;
+    document.getElementById('summary-transit').textContent   = todayOrders.filter(o => o.status === 'in_transit').length;
+    document.getElementById('summary-delivered').textContent = todayOrders.filter(o => ['delivered', 'completed'].includes(o.status)).length;
+
+    const pending   = orders.filter(o => o.status === 'pending');
+    const inTransit = orders.filter(o => o.status === 'in_transit');
+
+    // Pending
+    const pendingEl = document.getElementById('pickup-orders-list');
+    if (pending.length === 0) {
+      pendingEl.innerHTML = '<p style="color:#aaa; font-size:13px; text-align:center; padding:20px 0;">ไม่มีออเดอร์รอรับสินค้าในขณะนี้</p>';
+    } else {
+      pendingEl.innerHTML = pending.map(renderPickupCard).join('');
+    }
+
+    // In-Transit
+    const inTransitEl = document.getElementById('pickup-intransit-list');
+    if (inTransit.length === 0) {
+      inTransitEl.innerHTML = '<p style="color:#aaa; font-size:13px; text-align:center; padding:16px 0;">ยังไม่มีออเดอร์ที่กำลังส่ง</p>';
+    } else {
+      inTransitEl.innerHTML = inTransit.map(renderInTransitCard).join('');
+    }
+  }
+
+  function renderInTransitCard(order) {
+    const boTag = order.is_backorder
+      ? `<span style="background:#fdcb6e;color:#333;padding:1px 7px;border-radius:8px;font-size:11px;font-weight:600;">BO รอบ ${order.bo_round}</span>`
+      : '';
+
+    const itemsHtml = (order.items || []).length === 0
+      ? '<span style="color:#aaa;font-size:12px;">ไม่มีรายการสินค้า</span>'
+      : (order.items || []).map(i => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #d5f5e3;font-size:13px;">
+            <span style="color:#2d3436;">${i.product_name}</span>
+            <span style="font-weight:700;color:#1e3a5f;white-space:nowrap;margin-left:12px;">${i.qty_ordered} ${i.unit || ''}</span>
+          </div>`).join('');
+
+    const elapsed = order.dispatched_at
+      ? `<span style="font-weight:700;color:#0984e3;">⏱ ${elapsedText(order.dispatched_at)}</span>`
+      : '';
+
+    return `
+      <div style="border:2px solid #00b894;border-radius:12px;padding:16px;margin-bottom:14px;background:#f0fff8;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
+          <div>
+            <div style="font-weight:700;font-size:16px;color:#1e3a5f;">${order.do_number} ${boTag}</div>
+            <div style="font-size:13px;color:#555;margin-top:3px;">📍 ${order.branch?.name || '-'}</div>
+          </div>
+          <div style="text-align:right;">${statusBadge(order.status, order.sub_status)}</div>
+        </div>
+
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:#636e72;margin-bottom:10px;">
+          <span>📅 กำหนดส่ง: <b style="color:#2d3436;">${order.scheduled_date ? formatThaiDateTime(order.scheduled_date).split(' ')[0] : '-'}</b></span>
+          ${order.dispatched_at ? `<span>🚛 รับของขึ้นรถ: <b style="color:#0984e3;">${formatThaiDateTime(order.dispatched_at)}</b></span>` : ''}
+          ${elapsed}
+        </div>
+
+        <div style="background:#d5f5e3;border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+          <div style="font-weight:600;color:#00695c;font-size:12px;margin-bottom:6px;">📦 รายการสินค้าที่ต้องส่ง (${(order.items||[]).length} รายการ)</div>
+          ${itemsHtml}
+        </div>
+
+        <button onclick="arriveDelivery(${order.id})"
+          style="width:100%;background:linear-gradient(135deg,#a29bfe,#6c5ce7);color:white;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.3px;box-shadow:0 3px 8px rgba(108,92,231,0.3);">
+          ✅ ส่งสำเร็จ
+        </button>
+      </div>`;
+  }
+
+  function renderPickupCard(order) {
+    const itemsHtml = (order.items || []).length === 0
+      ? '<span style="color:#aaa;">ไม่มีรายการสินค้า</span>'
+      : (order.items || []).map(i =>
+          `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #dde8f8;font-size:12px;">
+            <span>${i.product_name}</span>
+            <span style="font-weight:700;color:#1e3a5f;">${i.qty_ordered} ${i.unit || ''}</span>
+          </div>`
+        ).join('');
+
+    const boTag = order.is_backorder
+      ? `<span style="background:#fdcb6e;color:#333;padding:1px 7px;border-radius:8px;font-size:11px;font-weight:600;">BO รอบ ${order.bo_round}</span>`
+      : '';
+
+    return `
+      <div style="border:2px solid #b2d8ff;border-radius:12px;padding:16px;margin-bottom:14px;background:#f0f8ff;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div>
+            <div style="font-weight:700;font-size:16px;color:#1e3a5f;">${order.do_number}</div>
+            <div style="font-size:13px;color:#555;margin-top:3px;">📍 ${order.branch?.name || '-'}</div>
+          </div>
+          <div style="text-align:right;">${statusBadge(order.status, order.sub_status)} ${boTag}</div>
+        </div>
+
+        <div style="background:#e8f0fe;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+          <div style="font-weight:600;color:#1e3a5f;font-size:12px;margin-bottom:6px;">📦 รายการสินค้า</div>
+          ${itemsHtml}
+        </div>
+
+        <div style="font-size:12px;color:#636e72;margin-bottom:14px;">
+          📅 กำหนดส่ง: <b style="color:#2d3436;">${order.scheduled_date ? formatThaiDateTime(order.scheduled_date).split(' ')[0] : '-'}</b>
+        </div>
+
+        <button onclick="startDelivery(${order.id})"
+          style="width:100%;background:linear-gradient(135deg,#00b894,#0984e3);color:white;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.3px;box-shadow:0 3px 8px rgba(0,184,148,0.3);">
+          🚛 รับของขึ้นรถ
+        </button>
+      </div>`;
+  }
+
+  async function startDelivery(orderId) {
+    const res = await apiCall('PATCH', '/api/delivery-orders/' + orderId + '/dispatch', {}, null);
+    if (!res.ok) {
+      alert(res.data?.message || 'ไม่สามารถเริ่มส่งสินค้าได้ กรุณาลองใหม่');
+      return;
+    }
+
+    // บันทึกเวลากดรับสินค้า (จาก server หรือใช้เวลาปัจจุบัน)
+    gpsDispatchedAt = res.data?.dispatched_at || new Date().toISOString();
+
+    if (!gpsDriverVehicleId) {
+      await loadDriverVehicle();
+      if (!gpsDriverVehicleId) {
+        alert('ไม่พบยานพาหนะที่ผูกกับบัญชีนี้ — GPS จะไม่ถูกส่ง แต่ออเดอร์เริ่มส่งแล้ว');
+      }
+    }
+
+    startGpsTracking(orderId);
+    appendGpsLog(`เริ่มส่ง DO #${orderId} เวลา ${formatThaiDateTime(gpsDispatchedAt)} — vehicle_id: ${gpsDriverVehicleId || 'ไม่พบ'}`);
+    await loadPickupOrders();
+  }
+
+  async function arriveDelivery(orderId) {
+    const res = await apiCall('PATCH', '/api/delivery-orders/' + orderId + '/arrive', {}, null);
+    if (!res.ok) {
+      alert(res.data?.message || 'ไม่สามารถยืนยันการส่งได้ กรุณาลองใหม่');
+      return;
+    }
+    const arrivedAt = res.data?.arrived_at || new Date().toISOString();
+    appendGpsLog(`ส่งสำเร็จ DO #${orderId} เวลา ${formatThaiDateTime(arrivedAt)}`);
+    await loadPickupOrders();
+  }
+
+  function startGpsTracking(orderId) {
+    if (!navigator.geolocation) {
+      gpsActiveOrderId = orderId;
+      showGpsBanner(true);
+      document.getElementById('pickup-gps-info').textContent = '⚠️ GPS ไม่พร้อมใช้งานในอุปกรณ์นี้';
+      const dispatchEl = document.getElementById('pickup-gps-dispatch-time');
+      if (dispatchEl && gpsDispatchedAt) {
+        dispatchEl.textContent = '🕐 กดรับสินค้า: ' + formatThaiDateTime(gpsDispatchedAt);
+      }
+      startElapsedTimer();
+      return;
+    }
+
+    // หยุด watch เดิมก่อน
+    if (gpsWatchId !== null) {
+      navigator.geolocation.clearWatch(gpsWatchId);
+    }
+
+    gpsActiveOrderId = orderId;
+    gpsLastSentAt = 0;
+    showGpsBanner(true);
+    document.getElementById('pickup-gps-info').textContent = 'กำลังรับสัญญาณ GPS...';
+
+    // แสดงเวลากดรับสินค้าและเริ่มนับเวลา
+    const dispatchEl = document.getElementById('pickup-gps-dispatch-time');
+    if (dispatchEl && gpsDispatchedAt) {
+      dispatchEl.textContent = '🕐 กดรับสินค้า: ' + formatThaiDateTime(gpsDispatchedAt);
+    }
+    startElapsedTimer();
+
+    gpsWatchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const acc = Math.round(position.coords.accuracy);
+        const now = Date.now();
+
+        // อัปเดต banner ทุกครั้ง
+        document.getElementById('pickup-gps-info').textContent =
+          `DO #${gpsActiveOrderId} · ${lat.toFixed(5)}, ${lng.toFixed(5)} · แม่นยำ ±${acc}m`;
+
+        // ส่ง server เฉพาะเมื่อถึงเวลา (throttle 30s)
+        if (now - gpsLastSentAt < GPS_SEND_INTERVAL_MS) return;
+        gpsLastSentAt = now;
+
+        if (gpsDriverVehicleId) {
+          const r = await apiCall('POST', '/api/gps/update', {
+            vehicle_id: gpsDriverVehicleId,
+            delivery_order_id: gpsActiveOrderId,
+            lat,
+            lng,
+          }, null);
+          const ok = r.ok ? '✅' : '❌';
+          appendGpsLog(`${ok} ส่งพิกัด ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${acc}m) → DO#${gpsActiveOrderId}`);
+        }
+      },
+      (error) => {
+        const msgs = { 1:'ผู้ใช้ปฏิเสธการเข้าถึง GPS', 2:'ไม่สามารถหาตำแหน่งได้', 3:'GPS หมดเวลา' };
+        const msg = msgs[error.code] || error.message;
+        document.getElementById('pickup-gps-info').textContent = '⚠️ GPS Error: ' + msg;
+        appendGpsLog('❌ GPS Error: ' + msg);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+  }
+
+  function stopGpsTracking() {
+    if (gpsWatchId !== null) {
+      navigator.geolocation.clearWatch(gpsWatchId);
+      gpsWatchId = null;
+    }
+    if (gpsElapsedTimer !== null) {
+      clearInterval(gpsElapsedTimer);
+      gpsElapsedTimer = null;
+    }
+    if (gpsDispatchedAt) {
+      appendGpsLog(`⏹ หยุด GPS — ระยะเวลาส่งทั้งหมด: ${elapsedText(gpsDispatchedAt)}`);
+    } else {
+      appendGpsLog('⏹ หยุด GPS tracking');
+    }
+    gpsActiveOrderId = null;
+    gpsDispatchedAt = null;
+    showGpsBanner(false);
+  }
+
+  function showGpsBanner(visible) {
+    const banner = document.getElementById('pickup-gps-banner');
+    banner.style.display = visible ? 'flex' : 'none';
+    if (visible) banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // Summary Tab — สรุปออเดอร์แยกตามสาขา
+  // ══════════════════════════════════════════════════════════════
+
+  async function loadDriverSummary() {
+    const filterStatus = document.getElementById('summary-status-filter')?.value || '';
+    const res = await apiCall('GET', '/api/driver/orders', null, null);
+    if (!res.ok) return;
+
+    let orders = (res.data || []).filter(o => o.status !== 'cancelled');
+    if (filterStatus) orders = orders.filter(o => o.status === filterStatus);
+
+    const container = document.getElementById('driver-summary-content');
+    if (orders.length === 0) {
+      container.innerHTML = '<p style="color:#aaa; font-size:13px; text-align:center; padding:24px 0;">ไม่มีออเดอร์ที่ตรงกับเงื่อนไข</p>';
+      return;
+    }
+
+    // Group by branch
+    const byBranch = {};
+    orders.forEach(o => {
+      const key = o.branch?.name || 'ไม่ระบุสาขา';
+      if (!byBranch[key]) byBranch[key] = { branch: o.branch, orders: [] };
+      byBranch[key].orders.push(o);
+    });
+
+    container.innerHTML = Object.entries(byBranch).map(([branchName, group]) => {
+      const totalItems = group.orders.reduce((s, o) => s + (o.items || []).length, 0);
+      const totalQty   = group.orders.reduce((s, o) =>
+        s + (o.items || []).reduce((si, i) => si + (parseFloat(i.qty_ordered) || 0), 0), 0);
+
+      const ordersHtml = group.orders.map(o => {
+        const dispatchRow = o.dispatched_at
+          ? `<div style="font-size:11px; color:#00b894; font-weight:600; margin-bottom:8px;">
+               ⏰ เวลารับสินค้า: ${formatThaiDateTime(o.dispatched_at)}
+               &nbsp;|&nbsp; ⏱ ${elapsedText(o.dispatched_at, o.received_at || o.arrived_at)}
+             </div>`
+          : `<div style="font-size:11px; color:#aaa; margin-bottom:8px;">ยังไม่ได้รับสินค้า</div>`;
+
+        const itemRows = (o.items || []).map(i => `
+          <tr>
+            <td style="padding:6px 10px;">${i.product_name}</td>
+            <td style="padding:6px 10px; text-align:center; font-weight:700; color:#1e3a5f; font-size:15px;">${i.qty_ordered}</td>
+            <td style="padding:6px 10px; color:#636e72;">${i.unit || '-'}</td>
+            <td style="padding:6px 10px; font-size:11px; color:${(i.qty_shortage > 0) ? '#e17055' : '#00b894'};">
+              ${i.qty_received != null ? `รับแล้ว ${i.qty_received}` + (i.qty_shortage > 0 ? ` (ขาด ${i.qty_shortage})` : ' ✓') : '-'}
+            </td>
+          </tr>`).join('');
+
+        const boTag = o.is_backorder
+          ? `<span style="background:#fdcb6e;color:#333;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600;">BO#${o.bo_round}</span>`
+          : '';
+
+        return `
+          <div style="background:#fff; border:1px solid #dde8f8; border-radius:10px; padding:14px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+              <div style="font-weight:700; font-size:14px; color:#1e3a5f;">${o.do_number} ${boTag}</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                ${statusBadge(o.status, o.sub_status)}
+                ${o.status === 'pending' ? `<button onclick="startDelivery(${o.id})" style="background:linear-gradient(135deg,#00b894,#0984e3);color:white;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">📦 รับสินค้า</button>` : ''}
+              </div>
+            </div>
+            <div style="font-size:11px; color:#888; margin-bottom:8px;">📅 กำหนดส่ง: ${o.scheduled_date ? o.scheduled_date.substring(0,10) : '-'}</div>
+            ${dispatchRow}
+            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-top:4px;">
+              <thead>
+                <tr style="background:#e8f0fe;">
+                  <th style="padding:6px 10px; text-align:left; color:#1e3a5f; font-weight:600;">รายการสินค้า</th>
+                  <th style="padding:6px 10px; text-align:center; color:#1e3a5f; font-weight:600;">จำนวน</th>
+                  <th style="padding:6px 10px; text-align:left; color:#1e3a5f; font-weight:600;">หน่วย</th>
+                  <th style="padding:6px 10px; text-align:left; color:#1e3a5f; font-weight:600;">สถานะรับ</th>
+                </tr>
+              </thead>
+              <tbody>${itemRows || '<tr><td colspan="4" style="text-align:center; color:#aaa; padding:8px;">ไม่มีรายการสินค้า</td></tr>'}</tbody>
+            </table>
+          </div>`;
+      }).join('');
+
+      return `
+        <div style="border:2px solid #74b9ff; border-radius:14px; overflow:hidden; margin-bottom:20px;">
+          <!-- Branch header -->
+          <div style="background:linear-gradient(135deg,#1e3a5f,#2a5298); color:white; padding:14px 18px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:16px; font-weight:700;">📍 ${branchName}</div>
+              <div style="font-size:12px; opacity:0.8; margin-top:2px;">${group.orders.length} ออเดอร์ · รวม ${totalQty} หน่วย · ${totalItems} รายการสินค้า</div>
+            </div>
+          </div>
+          <!-- Orders -->
+          <div style="padding:14px;">
+            ${ordersHtml}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function formatThaiDateTime(isoStr) {
+    if (!isoStr) return '-';
+    const d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    const date = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const time = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    return `${date} ${time} น.`;
+  }
+
+  function elapsedText(isoStart, isoEnd) {
+    if (!isoStart) return '-';
+    const start = new Date(isoStart);
+    const end   = isoEnd ? new Date(isoEnd) : new Date();
+    const diffMs = end - start;
+    if (isNaN(diffMs) || diffMs < 0) return '-';
+    const hours = Math.floor(diffMs / 3600000);
+    const mins  = Math.floor((diffMs % 3600000) / 60000);
+    if (hours > 0) return `${hours} ชม. ${mins} นาที`;
+    return `${mins} นาที`;
+  }
+
+  function startElapsedTimer() {
+    if (gpsElapsedTimer !== null) clearInterval(gpsElapsedTimer);
+    const update = () => {
+      const el = document.getElementById('pickup-gps-elapsed');
+      if (el && gpsDispatchedAt) {
+        el.textContent = '⏱ ระยะเวลาส่ง: ' + elapsedText(gpsDispatchedAt);
+      }
+    };
+    update();
+    gpsElapsedTimer = setInterval(update, 30000);
+  }
+
+  function appendGpsLog(msg) {
+    const logCard = document.getElementById('pickup-gps-log-card');
+    const logEl   = document.getElementById('pickup-gps-log');
+    logCard.style.display = 'block';
+    const ts = new Date().toLocaleTimeString('th-TH');
+    logEl.innerHTML = `<div style="padding:2px 0; border-bottom:1px solid #f0f0f0;">[${ts}] ${msg}</div>` + logEl.innerHTML;
+  }
+</script>
+</body>
+</html>
