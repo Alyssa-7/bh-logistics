@@ -45,6 +45,20 @@ services:
     networks:
       - delivery_network
 
+  queue:
+    image: delivery-system-app
+    container_name: delivery_queue
+    working_dir: /var/www/html
+    command: php artisan queue:work --sleep=3 --tries=2 --timeout=30
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    depends_on:
+      - db
+    networks:
+      - delivery_network
+    restart: unless-stopped
+
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: delivery_phpmyadmin

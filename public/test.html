@@ -167,6 +167,51 @@
     .sig-box.has-sig { border-color: #00b894; border-style: solid; }
     .sig-toolbar { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
     .sig-toolbar span { font-size: 12px; color: #888; }
+
+    .pickup-filter-btn {
+      flex: 1; padding: 9px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      border: 2px solid #ecf0f1; background: #ecf0f1; color: #555; cursor: pointer;
+    }
+    .pickup-filter-btn.pf-active {
+      background: #1e3a5f; color: white; border-color: #1e3a5f;
+    }
+
+    /* Touch / desktop fixes */
+    button, .tab { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    /* font-size 16px ป้องกัน iOS auto-zoom; cursor pointer บอกให้คลิกได้ทุก browser */
+    input[type="date"] {
+      font-size: 16px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    /* ทำ calendar icon ใหญ่ขึ้น เห็นชัดบนคอมและ iPad */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      width: 18px;
+      height: 18px;
+      opacity: 0.6;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    .sig-box { max-width: 100%; }
+
+    /* Custom Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9999;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-box {
+      background: white; border-radius: 16px; max-width: 380px; width: 100%;
+      padding: 32px 24px 24px; position: relative;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .modal-close-btn {
+      position: absolute; top: 12px; right: 12px; background: #ecf0f1;
+      border: none; border-radius: 50%; width: 34px; height: 34px;
+      font-size: 16px; cursor: pointer; color: #636e72;
+      display: flex; align-items: center; justify-content: center; padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .modal-close-btn:hover { background: #dfe6e9; color: #2d3436; }
   </style>
 </head>
 <body>
@@ -272,8 +317,8 @@
             <input type="number" id="new-branch-id" placeholder="1">
           </div>
           <div class="form-col">
-            <label>Vehicle ID (optional)</label>
-            <input type="number" id="new-vehicle-id" placeholder="1">
+            <label>Driver ID (optional)</label>
+            <input type="number" id="new-driver-id" placeholder="1">
           </div>
           <div class="form-col">
             <label>Scheduled Date</label>
@@ -354,9 +399,10 @@
         <!-- Signature Pad (ใช้ร่วมกันทั้ง confirm และ reject) -->
         <div style="margin-bottom:12px;">
           <label style="font-size:12px; color:#666; display:block; margin-bottom:6px;">
-            ลายเซ็นผู้รับ <span style="color:#888; font-size:11px;">(ไม่บังคับ — ลากเมาส์หรือนิ้วบน canvas)</span>
+            ลายเซ็นผู้รับ <span style="color:red; font-size:11px; font-weight:600;">* บังคับ</span>
+            <span style="color:#888; font-size:11px;">(ลากเมาส์หรือนิ้วบน canvas)</span>
           </label>
-          <canvas id="sig-canvas" class="sig-box" width="560" height="140"></canvas>
+          <canvas id="sig-canvas" class="sig-box" width="560" height="220"></canvas>
           <div class="sig-toolbar">
             <button class="secondary" onclick="clearSignature()" style="padding:5px 12px; font-size:12px;">ลบลายเซ็น</button>
             <span id="sig-status">ยังไม่มีลายเซ็น</span>
@@ -468,6 +514,14 @@
     <!-- Pickup Section (Driver รับสินค้าเพื่อเริ่มส่ง) -->
     <div class="section" id="tab-pickup">
 
+      <!-- Filter bar — sticky, อยู่บนสุดของ tab ไม่มีอะไรเลื่อนมัน -->
+      <div style="position:sticky;top:0;z-index:20;background:#f0f2f5;padding:6px 0 10px;display:flex;gap:6px;">
+        <button id="pf-all"     onclick="setPickupFilter('all')"     class="pickup-filter-btn pf-active">ทั้งหมด</button>
+        <button id="pf-new"     onclick="setPickupFilter('new')"     class="pickup-filter-btn">ใหม่</button>
+        <button id="pf-pending" onclick="setPickupFilter('pending')" class="pickup-filter-btn">รอส่ง</button>
+        <button id="pf-transit" onclick="setPickupFilter('transit')" class="pickup-filter-btn">กำลังส่ง</button>
+      </div>
+
       <!-- Driver Summary Cards (today) -->
       <div id="driver-summary-cards" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
         <div style="flex:1;min-width:90px;background:linear-gradient(135deg,#74b9ff,#0984e3);border-radius:14px;padding:16px 12px;color:white;text-align:center;box-shadow:0 3px 10px rgba(9,132,227,0.3);">
@@ -484,22 +538,33 @@
         </div>
       </div>
 
-      <!-- Pending Orders -->
-      <div class="card">
-        <h2>📦 รายการสินค้ารอรับเพื่อส่ง</h2>
+      <!-- Available Orders (no driver assigned) -->
+      <div class="card" id="card-new-orders">
+        <h2>🔔 งานใหม่จากสำนักงานใหญ่</h2>
         <p style="font-size:12px; color:#888; margin-bottom:12px;">
-          ออเดอร์ที่ได้รับมอบหมาย สถานะ
-          <span class="status-badge status-pending" style="font-size:11px;">รอดำเนินการ</span>
-          — กดปุ่มเขียวเพื่อยืนยันรับและเปิด GPS อัตโนมัติ
+          ออเดอร์ที่สร้างแล้วยังไม่มีคนขับรับ — กดรับงานเพื่อรับงานนี้เป็นของคุณ
         </p>
         <button onclick="loadPickupOrders()" style="margin-bottom:14px;">🔄 โหลดรายการ</button>
+        <div id="available-orders-list">
+          <p style="color:#aaa; font-size:13px; text-align:center; padding:20px 0;">กด "โหลดรายการ" เพื่อดูงาน</p>
+        </div>
+      </div>
+
+      <!-- Pending Orders (assigned to me) -->
+      <div class="card" id="card-pending-orders">
+        <h2>📦 งานที่รับแล้ว — รอรับสินค้าขึ้นรถ</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:12px;">
+          ออเดอร์ที่คุณรับแล้ว สถานะ
+          <span class="status-badge status-pending" style="font-size:11px;">รอดำเนินการ</span>
+          — กดปุ่มเพื่อยืนยันรับสินค้าและเปิด GPS อัตโนมัติ
+        </p>
         <div id="pickup-orders-list">
           <p style="color:#aaa; font-size:13px; text-align:center; padding:20px 0;">กด "โหลดรายการ" เพื่อดูออเดอร์</p>
         </div>
       </div>
 
       <!-- In-Transit Orders -->
-      <div class="card">
+      <div class="card" id="card-transit-orders">
         <h2>🚛 ออเดอร์ที่กำลังส่งอยู่</h2>
         <div id="pickup-intransit-list">
           <p style="color:#aaa; font-size:13px; text-align:center; padding:16px 0;">กด "โหลดรายการ" ด้านบนเพื่ออัปเดต</p>
@@ -546,10 +611,6 @@
         <h2>POST /api/gps/update — ส่ง GPS Location</h2>
         <div class="form-row">
           <div class="form-col">
-            <label>รหัสยานพาหนะ</label>
-            <input type="number" id="gps-vehicle-id" placeholder="1">
-          </div>
-          <div class="form-col">
             <label>Delivery Order ID (optional)</label>
             <input type="number" id="gps-order-id" placeholder="1">
           </div>
@@ -571,23 +632,57 @@
         <div class="result" id="gps-result" style="display:none;"></div>
       </div>
 
-      <div class="card">
-        <h2>GET /api/gps/{vehicle_id} — ประวัติ GPS</h2>
-        <div class="form-row">
-          <div class="form-col">
-            <label>รหัสยานพาหนะ</label>
-            <input type="number" id="gps-history-vehicle-id" placeholder="1">
-          </div>
-          <div class="form-col" style="display:flex; align-items:flex-end;">
-            <button onclick="getGpsHistory()">ดูประวัติ</button>
-          </div>
-        </div>
-        <div class="result" id="gps-history-result" style="display:none;"></div>
-      </div>
     </div>
 
     <!-- Reports Section -->
     <div class="section" id="tab-reports">
+
+      <div class="card">
+        <h2>อัตราการส่งมอบตรงเวลา (On-Time Delivery Rate)</h2>
+        <p style="font-size:12px; color:#888; margin-bottom:12px;">
+          เปรียบเทียบเวลาที่รถถึงจริง (<b>arrived_at</b>) กับวันที่กำหนดส่งในแผน (<b>scheduled_date</b>) — นับเฉพาะ DO ที่ completed/delivered และมีข้อมูลครบทั้งคู่
+        </p>
+        <div class="form-row">
+          <div class="form-col">
+            <label>จากวันที่</label>
+            <input type="date" id="ontime-from">
+          </div>
+          <div class="form-col">
+            <label>ถึงวันที่</label>
+            <input type="date" id="ontime-to">
+          </div>
+          <div class="form-col" style="display:flex; align-items:flex-end;">
+            <button onclick="getOnTimeRate()">คำนวณ</button>
+          </div>
+        </div>
+        <div id="ontime-display" style="display:none; margin-top:16px;">
+          <div style="text-align:center; padding:20px 0 16px;">
+            <div id="ontime-rate-num" style="font-size:60px; font-weight:800; line-height:1;"></div>
+            <div id="ontime-rate-sub" style="font-size:14px; color:#636e72; margin-top:6px;"></div>
+          </div>
+          <div style="background:#ecf0f1; border-radius:8px; height:14px; margin-bottom:16px; overflow:hidden;">
+            <div id="ontime-bar" style="height:100%; border-radius:8px; transition:width 0.6s;"></div>
+          </div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:90px; background:#f8f9fa; border-radius:10px; padding:12px; text-align:center;">
+              <div id="ontime-on-count" style="font-size:24px; font-weight:800; color:#00b894;"></div>
+              <div style="font-size:11px; color:#636e72; margin-top:3px;">ตรงเวลา</div>
+            </div>
+            <div style="flex:1; min-width:90px; background:#f8f9fa; border-radius:10px; padding:12px; text-align:center;">
+              <div id="ontime-late-count" style="font-size:24px; font-weight:800; color:#e17055;"></div>
+              <div style="font-size:11px; color:#636e72; margin-top:3px;">ล่าช้า</div>
+            </div>
+            <div style="flex:1; min-width:90px; background:#f8f9fa; border-radius:10px; padding:12px; text-align:center;">
+              <div id="ontime-total-count" style="font-size:24px; font-weight:800; color:#636e72;"></div>
+              <div style="font-size:11px; color:#636e72; margin-top:3px;">DO ที่นับได้</div>
+            </div>
+          </div>
+        </div>
+        <div id="ontime-no-data" style="display:none; color:#999; font-size:13px; margin-top:12px; text-align:center; padding:24px 0;">
+          ไม่มีข้อมูล DO ที่มี scheduled_date และ arrived_at ในช่วงนี้
+        </div>
+      </div>
+
       <div class="card">
         <h2>GET /api/reports/monthly — รายงานรายเดือน</h2>
         <div class="form-row">
@@ -669,6 +764,18 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Custom Modal Dialog — ปิดด้วยปุ่ม ✕ เท่านั้น -->
+<div id="modal-overlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <button class="modal-close-btn" onclick="closeModal()">✕</button>
+    <div id="modal-icon" style="font-size:44px; text-align:center; margin-bottom:12px; line-height:1;"></div>
+    <div id="modal-message" style="font-size:15px; color:#2d3436; text-align:center; line-height:1.8; white-space:pre-line;"></div>
+    <div id="modal-confirm-btns" style="display:none; margin-top:22px; gap:10px; justify-content:center;">
+      <button id="modal-ok-btn" onclick="closeModal(true)" class="success" style="min-width:140px; padding:11px 20px; font-size:15px;">✔ ยืนยัน</button>
+    </div>
   </div>
 </div>
 
@@ -760,8 +867,14 @@
   async function listOrders() {
     const status = document.getElementById('order-filter-status').value;
     const url = '/api/delivery-orders' + (status ? '?status=' + status : '');
-    const res = await apiCall('GET', url, null, 'orders-result');
-    if (res.ok && res.data.data) {
+    const res = await apiCall('GET', url, null, null);
+    if (!res.ok) {
+      const el = document.getElementById('orders-result');
+      el.style.display = 'block'; el.className = 'result error';
+      el.textContent = JSON.stringify(res.data, null, 2);
+      return;
+    }
+    if (res.data.data) {
       const orders = res.data.data;
       document.getElementById('orders-result').style.display = 'none';
       document.getElementById('orders-table').innerHTML = orders.length === 0
@@ -784,7 +897,7 @@
   async function createOrder() {
     const body = {
       branch_id: parseInt(document.getElementById('new-branch-id').value),
-      vehicle_id: document.getElementById('new-vehicle-id').value ? parseInt(document.getElementById('new-vehicle-id').value) : null,
+      driver_id: document.getElementById('new-driver-id').value ? parseInt(document.getElementById('new-driver-id').value) : null,
       scheduled_date: document.getElementById('new-scheduled-date').value,
       items: JSON.parse(document.getElementById('new-items').value),
     };
@@ -797,6 +910,13 @@
     document.getElementById('update-order-status')?.addEventListener('change', function () {
       document.getElementById('cancel-reason-row').style.display =
         this.value === 'cancelled' ? 'block' : 'none';
+    });
+
+    // คลิกที่ไหนก็ได้ในช่องวันที่ → เปิดปฏิทิน (Chrome/Edge/Safari/iPad)
+    document.querySelectorAll('input[type="date"]').forEach(el => {
+      el.addEventListener('click', function () {
+        try { this.showPicker && this.showPicker(); } catch (e) {}
+      });
     });
   });
 
@@ -839,7 +959,9 @@
     const pos = (e) => {
       const r = canvas.getBoundingClientRect();
       const src = e.touches ? e.touches[0] : e;
-      return { x: src.clientX - r.left, y: src.clientY - r.top };
+      const scaleX = canvas.width / r.width;
+      const scaleY = canvas.height / r.height;
+      return { x: (src.clientX - r.left) * scaleX, y: (src.clientY - r.top) * scaleY };
     };
 
     const start = (e) => {
@@ -927,37 +1049,39 @@
       return;
     }
     document.getElementById('reject-reason').style.borderColor = '';
-    await receiveOrder('reject');
-    cancelReject();
+    const ok = await receiveOrder('reject');
+    if (ok) cancelReject();
   }
 
   async function receiveOrder(action) {
     const id = document.getElementById('receive-order-id').value;
-    if (!id) return alert('กรุณากรอก Delivery Order ID');
+    if (!id) { await showAlert('กรุณากรอก Delivery Order ID', '⚠️'); return false; }
 
     const signature = getSignatureDataUrl();
+    if (!signature) { await showAlert('กรุณาลงลายเซ็นก่อนดำเนินการ', '✍️'); return false; }
     let body = { action, signature };
 
     if (action === 'confirm') {
       let items;
       try { items = JSON.parse(document.getElementById('receive-items').value); }
-      catch { return alert('JSON ไม่ถูกต้อง'); }
+      catch { await showAlert('JSON ไม่ถูกต้อง', '❌'); return false; }
       body.items = items;
 
       const shortages = items.filter(i => i.qty_ordered && i.qty_received < i.qty_ordered);
       if (shortages.length > 0) {
         const total = shortages.reduce((s, i) => s + (i.qty_ordered - i.qty_received), 0);
-        if (!confirm(`ตรวจพบสินค้าขาด ${total} หน่วย — ระบบจะสร้าง Backorder อัตโนมัติและแจ้ง HQ\n\nยืนยันดำเนินการต่อ?`)) return;
+        if (!await showConfirm(`ตรวจพบสินค้าขาด ${total} หน่วย\nระบบจะสร้าง Backorder อัตโนมัติและแจ้ง HQ\n\nยืนยันดำเนินการต่อ?`, '⚠️')) return false;
       }
     } else {
       const reason = document.getElementById('reject-reason').value.trim();
-      if (!reason) return alert('กรุณากรอกเหตุผลการปฏิเสธ');
+      if (!reason) { await showAlert('กรุณากรอกเหตุผลการปฏิเสธ', '⚠️'); return false; }
       body.rejection_reason = reason;
     }
 
     document.getElementById('receive-result').style.display = 'block';
     const res = await apiCall('POST', '/api/delivery-orders/' + id + '/receive-items', body, 'receive-result');
     if (res.ok) clearSignature();
+    return res.ok;
   }
 
   async function loadPendingBackorders() {
@@ -982,7 +1106,7 @@
   async function approveBO() {
     const id = document.getElementById('bo-approve-id').value;
     const driverId = document.getElementById('bo-driver-id').value;
-    if (!id || !driverId) return alert('กรุณากรอก BO ID และ Driver ID');
+    if (!id || !driverId) { await showAlert('กรุณากรอก BO ID และ Driver ID', '⚠️'); return; }
     document.getElementById('bo-approve-result').style.display = 'block';
     const res = await apiCall('POST', '/api/delivery-orders/' + id + '/approve-backorder',
       { driver_id: parseInt(driverId) }, 'bo-approve-result');
@@ -992,8 +1116,8 @@
   async function rejectBO() {
     const id = document.getElementById('bo-reject-id').value;
     const reason = document.getElementById('bo-reject-reason').value.trim();
-    if (!id) return alert('กรุณากรอก BO ID');
-    if (!reason) return alert('กรุณากรอกเหตุผลการปฏิเสธ');
+    if (!id) { await showAlert('กรุณากรอก BO ID', '⚠️'); return; }
+    if (!reason) { await showAlert('กรุณากรอกเหตุผลการปฏิเสธ', '⚠️'); return; }
     document.getElementById('bo-reject-result').style.display = 'block';
     const res = await apiCall('POST', '/api/delivery-orders/' + id + '/reject-backorder',
       { rejection_reason: reason }, 'bo-reject-result');
@@ -1050,7 +1174,7 @@
   }
 
   function getMyLocation() {
-    if (!navigator.geolocation) return alert('Browser ไม่รองรับ Geolocation');
+    if (!navigator.geolocation) { showAlert('Browser ไม่รองรับ Geolocation', '📍'); return; }
     navigator.geolocation.getCurrentPosition(pos => {
       document.getElementById('gps-lat').value = pos.coords.latitude.toFixed(6);
       document.getElementById('gps-lng').value = pos.coords.longitude.toFixed(6);
@@ -1059,7 +1183,6 @@
 
   async function sendGps() {
     const body = {
-      vehicle_id: parseInt(document.getElementById('gps-vehicle-id').value),
       delivery_order_id: document.getElementById('gps-order-id').value ? parseInt(document.getElementById('gps-order-id').value) : null,
       lat: parseFloat(document.getElementById('gps-lat').value),
       lng: parseFloat(document.getElementById('gps-lng').value),
@@ -1068,10 +1191,57 @@
     await apiCall('POST', '/api/gps/update', body, 'gps-result');
   }
 
-  async function getGpsHistory() {
-    const id = document.getElementById('gps-history-vehicle-id').value;
-    document.getElementById('gps-history-result').style.display = 'block';
-    await apiCall('GET', '/api/gps/' + id, null, 'gps-history-result');
+  async function getOnTimeRate() {
+    const from = document.getElementById('ontime-from').value;
+    const to   = document.getElementById('ontime-to').value;
+    const display = document.getElementById('ontime-display');
+    const noData  = document.getElementById('ontime-no-data');
+
+    display.style.display = 'none';
+    noData.style.display  = 'block';
+    noData.textContent    = 'กำลังโหลดข้อมูล...';
+
+    // ดึง DO ที่ completed และ delivered ทุกหน้า (pagination 20/หน้า)
+    const allOrders = [];
+    for (const status of ['completed', 'delivered']) {
+      let page = 1, lastPage = 1;
+      do {
+        const res = await apiCall('GET', `/api/delivery-orders?status=${status}&page=${page}`, null, null);
+        if (!res.ok || !res.data?.data) break;
+        allOrders.push(...res.data.data);
+        lastPage = res.data.last_page || 1;
+        page++;
+      } while (page <= lastPage);
+    }
+
+    // กรองเฉพาะ DO ที่มี arrived_at และ scheduled_date ครบ
+    let orders = allOrders.filter(o => o.arrived_at && o.scheduled_date);
+
+    // กรองตามช่วงวันที่ (client-side) ถ้าระบุ
+    if (from) orders = orders.filter(o => o.arrived_at.slice(0, 10) >= from);
+    if (to)   orders = orders.filter(o => o.arrived_at.slice(0, 10) <= to);
+
+    const total  = orders.length;
+    const onTime = orders.filter(o => o.arrived_at.slice(0, 10) <= o.scheduled_date).length;
+    const rate   = total > 0 ? Math.round(onTime / total * 1000) / 10 : null;
+
+    if (total === 0 || rate === null) {
+      noData.textContent = 'ไม่มีข้อมูล DO ที่มี scheduled_date และ arrived_at ในช่วงนี้';
+      return;
+    }
+
+    noData.style.display  = 'none';
+    display.style.display = 'block';
+
+    const color = rate >= 80 ? '#00b894' : rate >= 60 ? '#f39c12' : '#e17055';
+    document.getElementById('ontime-rate-num').textContent   = rate + '%';
+    document.getElementById('ontime-rate-num').style.color   = color;
+    document.getElementById('ontime-rate-sub').textContent   = 'ส่งตรงเวลา ' + onTime + ' จาก ' + total + ' ออเดอร์';
+    document.getElementById('ontime-bar').style.width        = rate + '%';
+    document.getElementById('ontime-bar').style.background   = color;
+    document.getElementById('ontime-on-count').textContent   = onTime;
+    document.getElementById('ontime-late-count').textContent = total - onTime;
+    document.getElementById('ontime-total-count').textContent = total;
   }
 
   async function getMonthlyReport() {
@@ -1152,33 +1322,50 @@
 
   let gpsWatchId = null;
   let gpsActiveOrderId = null;
-  let gpsDriverVehicleId = null;
   let gpsLastSentAt = 0;
   const GPS_SEND_INTERVAL_MS = 30000; // ส่งพิกัดทุก 30 วินาที
   let gpsDispatchedAt = null;
   let gpsElapsedTimer = null;
+  let currentPickupFilter = 'all';
 
-  async function loadDriverVehicle() {
-    if (!currentUser) return null;
-    const res = await apiCall('GET', '/api/vehicles', null, null);
-    if (res.ok && Array.isArray(res.data)) {
-      const mine = res.data.find(v => v.driver_id === currentUser.id);
-      if (mine) { gpsDriverVehicleId = mine.id; return mine; }
-    }
-    return null;
+  function setPickupFilter(filter) {
+    currentPickupFilter = filter;
+    const show = {
+      'card-new-orders':     filter === 'all' || filter === 'new',
+      'card-pending-orders': filter === 'all' || filter === 'pending',
+      'card-transit-orders': filter === 'all' || filter === 'transit',
+    };
+    Object.entries(show).forEach(([id, visible]) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = visible ? 'block' : 'none';
+    });
+    document.querySelectorAll('.pickup-filter-btn').forEach(btn => btn.classList.remove('pf-active'));
+    const activeBtn = document.getElementById('pf-' + filter);
+    if (activeBtn) activeBtn.classList.add('pf-active');
   }
 
   async function loadPickupOrders() {
-    // Pre-load vehicle so GPS starts without delay when driver taps accept
-    if (!gpsDriverVehicleId) loadDriverVehicle();
 
-    const res = await apiCall('GET', '/api/driver/orders', null, null);
+    const [res, resAvail] = await Promise.all([
+      apiCall('GET', '/api/driver/orders', null, null),
+      apiCall('GET', '/api/driver/available-orders', null, null),
+    ]);
+
+    // Available orders (ยังไม่มีคนรับ)
+    const available = resAvail.ok ? (resAvail.data || []) : [];
+    const availEl = document.getElementById('available-orders-list');
+    if (available.length === 0) {
+      availEl.innerHTML = '<p style="color:#aaa; font-size:13px; text-align:center; padding:20px 0;">ไม่มีงานรอรับในขณะนี้</p>';
+    } else {
+      availEl.innerHTML = available.map(renderAvailableCard).join('');
+    }
+
     if (!res.ok) return;
 
     const orders = res.data || [];
-    const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const todayStr = new Date().toISOString().slice(0, 10);
 
-    // Summary cards — นับเฉพาะออเดอร์วันนี้ (ใช้ scheduled_date)
+    // Summary cards
     const todayOrders = orders.filter(o => (o.scheduled_date || '').slice(0, 10) === todayStr);
     document.getElementById('summary-pending').textContent   = todayOrders.filter(o => o.status === 'pending').length;
     document.getElementById('summary-transit').textContent   = todayOrders.filter(o => o.status === 'in_transit').length;
@@ -1187,7 +1374,7 @@
     const pending   = orders.filter(o => o.status === 'pending');
     const inTransit = orders.filter(o => o.status === 'in_transit');
 
-    // Pending
+    // My pending orders
     const pendingEl = document.getElementById('pickup-orders-list');
     if (pending.length === 0) {
       pendingEl.innerHTML = '<p style="color:#aaa; font-size:13px; text-align:center; padding:20px 0;">ไม่มีออเดอร์รอรับสินค้าในขณะนี้</p>';
@@ -1202,6 +1389,49 @@
     } else {
       inTransitEl.innerHTML = inTransit.map(renderInTransitCard).join('');
     }
+    setPickupFilter(currentPickupFilter);
+  }
+
+  function renderAvailableCard(order) {
+    const itemsHtml = (order.items || []).length === 0
+      ? '<span style="color:#aaa;">ไม่มีรายการสินค้า</span>'
+      : (order.items || []).map(i =>
+          `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #fde8c8;font-size:12px;">
+            <span>${i.product_name}</span>
+            <span style="font-weight:700;color:#e67e22;">${i.qty_ordered} ${i.unit || ''}</span>
+          </div>`
+        ).join('');
+
+    return `
+      <div style="border:2px solid #f39c12;border-radius:12px;padding:16px;margin-bottom:14px;background:#fffbf0;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div>
+            <div style="font-weight:700;font-size:16px;color:#1e3a5f;">${order.do_number}</div>
+            <div style="font-size:13px;color:#555;margin-top:3px;">📍 ${order.branch?.name || '-'}</div>
+          </div>
+          <span style="background:#f39c12;color:white;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700;">รอรับงาน</span>
+        </div>
+        <div style="background:#fef5e4;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+          <div style="font-weight:600;color:#e67e22;font-size:12px;margin-bottom:6px;">📦 รายการสินค้า</div>
+          ${itemsHtml}
+        </div>
+        <div style="font-size:12px;color:#636e72;margin-bottom:14px;">
+          📅 กำหนดส่ง: <b style="color:#2d3436;">${order.scheduled_date ? formatThaiDateTime(order.scheduled_date).split(' ')[0] : '-'}</b>
+        </div>
+        <button onclick="acceptOrder(${order.id})"
+          style="width:100%;background:linear-gradient(135deg,#f39c12,#e67e22);color:white;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.3px;box-shadow:0 3px 8px rgba(243,156,18,0.35);">
+          🙋 รับงานนี้
+        </button>
+      </div>`;
+  }
+
+  async function acceptOrder(orderId) {
+    const res = await apiCall('POST', '/api/delivery-orders/' + orderId + '/accept-order', {}, null);
+    if (!res.ok) {
+      await showAlert(res.data?.message || 'ไม่สามารถรับงานได้ กรุณาลองใหม่', '❌');
+      return;
+    }
+    await loadPickupOrders();
   }
 
   function renderInTransitCard(order) {
@@ -1292,29 +1522,22 @@
   async function startDelivery(orderId) {
     const res = await apiCall('PATCH', '/api/delivery-orders/' + orderId + '/dispatch', {}, null);
     if (!res.ok) {
-      alert(res.data?.message || 'ไม่สามารถเริ่มส่งสินค้าได้ กรุณาลองใหม่');
+      await showAlert(res.data?.message || 'ไม่สามารถเริ่มส่งสินค้าได้ กรุณาลองใหม่', '❌');
       return;
     }
 
     // บันทึกเวลากดรับสินค้า (จาก server หรือใช้เวลาปัจจุบัน)
     gpsDispatchedAt = res.data?.dispatched_at || new Date().toISOString();
 
-    if (!gpsDriverVehicleId) {
-      await loadDriverVehicle();
-      if (!gpsDriverVehicleId) {
-        alert('ไม่พบยานพาหนะที่ผูกกับบัญชีนี้ — GPS จะไม่ถูกส่ง แต่ออเดอร์เริ่มส่งแล้ว');
-      }
-    }
-
     startGpsTracking(orderId);
-    appendGpsLog(`เริ่มส่ง DO #${orderId} เวลา ${formatThaiDateTime(gpsDispatchedAt)} — vehicle_id: ${gpsDriverVehicleId || 'ไม่พบ'}`);
+    appendGpsLog(`เริ่มส่ง DO #${orderId} เวลา ${formatThaiDateTime(gpsDispatchedAt)}`);
     await loadPickupOrders();
   }
 
   async function arriveDelivery(orderId) {
     const res = await apiCall('PATCH', '/api/delivery-orders/' + orderId + '/arrive', {}, null);
     if (!res.ok) {
-      alert(res.data?.message || 'ไม่สามารถยืนยันการส่งได้ กรุณาลองใหม่');
+      await showAlert(res.data?.message || 'ไม่สามารถยืนยันการส่งได้ กรุณาลองใหม่', '❌');
       return;
     }
     const arrivedAt = res.data?.arrived_at || new Date().toISOString();
@@ -1367,16 +1590,13 @@
         if (now - gpsLastSentAt < GPS_SEND_INTERVAL_MS) return;
         gpsLastSentAt = now;
 
-        if (gpsDriverVehicleId) {
-          const r = await apiCall('POST', '/api/gps/update', {
-            vehicle_id: gpsDriverVehicleId,
-            delivery_order_id: gpsActiveOrderId,
-            lat,
-            lng,
-          }, null);
-          const ok = r.ok ? '✅' : '❌';
-          appendGpsLog(`${ok} ส่งพิกัด ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${acc}m) → DO#${gpsActiveOrderId}`);
-        }
+        const r = await apiCall('POST', '/api/gps/update', {
+          delivery_order_id: gpsActiveOrderId,
+          lat,
+          lng,
+        }, null);
+        const ok = r.ok ? '✅' : '❌';
+        appendGpsLog(`${ok} ส่งพิกัด ${lat.toFixed(5)}, ${lng.toFixed(5)} (±${acc}m) → DO#${gpsActiveOrderId}`);
       },
       (error) => {
         const msgs = { 1:'ผู้ใช้ปฏิเสธการเข้าถึง GPS', 2:'ไม่สามารถหาตำแหน่งได้', 3:'GPS หมดเวลา' };
@@ -1410,7 +1630,6 @@
   function showGpsBanner(visible) {
     const banner = document.getElementById('pickup-gps-banner');
     banner.style.display = visible ? 'flex' : 'none';
-    if (visible) banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -1548,6 +1767,36 @@
     const ts = new Date().toLocaleTimeString('th-TH');
     logEl.innerHTML = `<div style="padding:2px 0; border-bottom:1px solid #f0f0f0;">[${ts}] ${msg}</div>` + logEl.innerHTML;
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // Custom Modal — แทน alert() / confirm() ทั้งหมด
+  // ══════════════════════════════════════════════════════════════
+  let _modalResolve = null;
+
+  function showAlert(msg, icon) {
+    document.getElementById('modal-message').textContent = msg;
+    document.getElementById('modal-icon').textContent = icon || 'ℹ️';
+    document.getElementById('modal-confirm-btns').style.display = 'none';
+    document.getElementById('modal-overlay').style.display = 'flex';
+    return new Promise(r => { _modalResolve = r; });
+  }
+
+  function showConfirm(msg, icon) {
+    document.getElementById('modal-message').textContent = msg;
+    document.getElementById('modal-icon').textContent = icon || '⚠️';
+    document.getElementById('modal-confirm-btns').style.display = 'flex';
+    document.getElementById('modal-overlay').style.display = 'flex';
+    return new Promise(r => { _modalResolve = r; });
+  }
+
+  function closeModal(result) {
+    document.getElementById('modal-overlay').style.display = 'none';
+    if (_modalResolve) {
+      _modalResolve(result === true);
+      _modalResolve = null;
+    }
+  }
+
 </script>
 </body>
 </html>

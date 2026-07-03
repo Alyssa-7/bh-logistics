@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryOrder;
 use App\Models\GpsLog;
-use App\Models\Vehicle;
 use Illuminate\Http\Request;
 
 class GpsController extends Controller
@@ -15,47 +14,39 @@ class GpsController extends Controller
         $user = auth()->user();
 
         if ($user->hasRole('driver')) {
-            // Cache vehicle ID per driver — refreshes every 10 min or on vehicle change
-            $vehicleId = cache()->remember(
-                "driver_vehicle_id_{$user->id}",
-                600,
-                fn () => Vehicle::where('driver_id', $user->id)->value('id')
-            );
-            if (!$vehicleId) {
-                return response()->json(['message' => 'ไม่พบยานพาหนะที่ผูกกับบัญชีนี้'], 422);
-            }
             $request->validate([
                 'lat' => 'required|numeric|between:-90,90',
                 'lng' => 'required|numeric|between:-180,180',
             ]);
-            $deliveryOrderId = DeliveryOrder::where('vehicle_id', $vehicleId)
+            $driverId = $user->id;
+            $deliveryOrderId = DeliveryOrder::where('driver_id', $driverId)
                 ->where('status', 'in_transit')
                 ->value('id');
         } else {
             $request->validate([
-                'vehicle_id' => 'required|exists:vehicles,id',
+                'driver_id'         => 'required|exists:users,id',
                 'delivery_order_id' => 'nullable|exists:delivery_orders,id',
-                'lat' => 'required|numeric|between:-90,90',
-                'lng' => 'required|numeric|between:-180,180',
+                'lat'               => 'required|numeric|between:-90,90',
+                'lng'               => 'required|numeric|between:-180,180',
             ]);
-            $vehicleId = $request->vehicle_id;
+            $driverId        = $request->driver_id;
             $deliveryOrderId = $request->delivery_order_id;
         }
 
         $log = GpsLog::create([
-            'vehicle_id' => $vehicleId,
+            'driver_id'         => $driverId,
             'delivery_order_id' => $deliveryOrderId ?? null,
-            'lat' => $request->lat,
-            'lng' => $request->lng,
-            'recorded_at' => now(),
+            'lat'               => $request->lat,
+            'lng'               => $request->lng,
+            'recorded_at'       => now(),
         ]);
 
         return response()->json($log, 201);
     }
 
-    public function history(Vehicle $vehicle)
+    public function history(int $driverId)
     {
-        $logs = $vehicle->gpsLogs()
+        $logs = GpsLog::where('driver_id', $driverId)
             ->with('deliveryOrder')
             ->latest('recorded_at')
             ->limit(100)
@@ -64,14 +55,9 @@ class GpsController extends Controller
         return response()->json($logs);
     }
 
-    public function getDistance(int $vehicleId)
+    public function getDistance(int $driverId)
     {
-        $vehicle = Vehicle::find($vehicleId);
-        if (!$vehicle) {
-            return response()->json(['message' => 'ไม่พบยานพาหนะ'], 404);
-        }
-
-        $latestLog = GpsLog::where('vehicle_id', $vehicleId)
+        $latestLog = GpsLog::where('driver_id', $driverId)
             ->latest('recorded_at')
             ->first();
 
@@ -80,7 +66,7 @@ class GpsController extends Controller
         }
 
         $do = DeliveryOrder::where('status', 'in_transit')
-            ->where('vehicle_id', $vehicleId)
+            ->where('driver_id', $driverId)
             ->with('branch')
             ->first();
 
@@ -94,15 +80,14 @@ class GpsController extends Controller
         );
 
         return response()->json([
-            'vehicle_id'    => $vehicleId,
-            'license_plate' => $vehicle->license_plate,
-            'do_number'     => $do->do_number,
-            'branch_name'   => $do->branch->name,
-            'branch_lat'    => $do->branch->lat,
-            'branch_lng'    => $do->branch->lng,
-            'distance_km'   => round($distanceKm, 1),
-            'eta_minutes'   => (int) round($distanceKm / 40 * 60),
-            'last_gps_at'   => $latestLog->recorded_at,
+            'driver_id'   => $driverId,
+            'do_number'   => $do->do_number,
+            'branch_name' => $do->branch->name,
+            'branch_lat'  => $do->branch->lat,
+            'branch_lng'  => $do->branch->lng,
+            'distance_km' => round($distanceKm, 1),
+            'eta_minutes' => (int) round($distanceKm / 40 * 60),
+            'last_gps_at' => $latestLog->recorded_at,
         ]);
     }
 
